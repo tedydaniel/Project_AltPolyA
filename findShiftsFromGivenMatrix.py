@@ -10,12 +10,13 @@ PERCENT_OF_READS_HIST = 0.6
 RATIO_TRESHOLD = 0.1
 #updated during the run:
 THRESHOLD = 0
+SAMPLES_PARTS = [2, 4, 8, 11]
 
 
 def readTheFile(path):
     """
-    Reading the file from tha path and returning a list sorted by gene names
-    of the format [geneName, reads] where reads are an array of reads for each tissue.
+    Reading the file from tha path and returning a list of Gene objects
+     sorted by gene names
     :param path:
     :return:
     """
@@ -26,14 +27,14 @@ def readTheFile(path):
     while line != '':
         columns = line.split()
         reads = np.array([float(x) for x in columns[5:]])
-        # name = columns[0]
-        # chr = columns[1]
-        # start = columns[2]
-        # end = columns[3]
-        # strand = columns[4]
-        data.append([columns[0], np.array(reads)])
+        name = columns[0]
+        chrm = columns[1]
+        start = columns[2]
+        end = columns[3]
+        strand = columns[4]
+        data.append(Gene(name, reads, np.array([start, end]), strand, chrm))
         line = file.readline()
-    return list(sorted(data, key=lambda x: x[0]))
+    return list(sorted(data, key=lambda x: x.getName()))
 
 
 def findAlternatives(sortedList):
@@ -50,23 +51,18 @@ def findAlternatives(sortedList):
     TRESHOLD = readsHistogram(sortedList)
     afterTresholdData = []
     for i in range(len(sortedList)):
-        if np.mean(sortedList[i][1]) >= TRESHOLD:
+        if np.mean(sortedList[i].getSamples()) >= TRESHOLD:
             afterTresholdData.append(sortedList[i])   #leaves only the reads only if the mean of the reads above TRESHOLD
-    # print(afterTresholdData)
-    # afterTresholdData = np.asarray(afterTresholdData)
     index = 0
     while index < (len(afterTresholdData) - 1):
         counter = 1
-        while afterTresholdData[index][0] == afterTresholdData[index + counter][0] \
-                and np.max(afterTresholdData[index][1]) > 0:
-            if np.max(afterTresholdData[index + counter][1]) > 0:
-                afterTresholdData[index][1] = np.vstack((afterTresholdData[index][1],
-                                                         afterTresholdData[index + counter][1]))
+        while afterTresholdData[index].getName() == afterTresholdData[index + counter].getName():
+            afterTresholdData[index].appendSamples(afterTresholdData[index + counter].getSamples())
             counter += 1
         index += counter
     alternatives = []
     for item in afterTresholdData:
-        if len(item[1].shape) > 1:
+        if len(item.getSamples().shape) > 1:
             alternatives.append(item)
     return alternatives
 
@@ -78,9 +74,9 @@ def readsHistogram(sortedList):
     :param alternatives:
     :return:
     """
-    M = sortedList[0][1]
+    M = sortedList[0].getSamples()
     for item in sortedList:
-        M = np.vstack((M, item[1]))
+        M = np.vstack((M, item.getSamples()))
     m = int(np.max(M))
     M = np.ndarray.flatten(M)
     # M = M[np.nonzero(M)]     #considering zeros or not?
@@ -104,13 +100,13 @@ def calculateFractions(alternatives):
     :return: List with fractions of the reads from the original list
     """
     for item in alternatives:
-        Mt = np.transpose(item[1])
+        Mt = np.transpose(item.getSamples())
         for row in Mt:
             s = np.sum(row)
             if s != 0:
                 for i in range(len(row)):
                     row[i] /= s
-        item[1] = np.transpose(Mt)
+        item.setSamples(np.transpose(Mt))
     return alternatives
 
 
@@ -127,12 +123,12 @@ def findShifts(alternatives):
     shifted = []
     for item in alternatives:
         isShifted = False
-        for row in item[1]:
-            meanAmg = np.mean(row[:2])
-            meanLH = np.mean(row[2:4])
-            meanNAC = np.mean(row[4:8])
-            meanPFC = np.mean(row[8:11])
-            meanSTR = np.mean(row[11:])
+        for row in item.getSamples():
+            meanAmg = np.mean(row[:SAMPLES_PARTS[0]])
+            meanLH = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
+            meanNAC = np.mean(row[SAMPLES_PARTS[1]:SAMPLES_PARTS[2]])
+            meanPFC = np.mean(row[SAMPLES_PARTS[2]:SAMPLES_PARTS[3]])
+            meanSTR = np.mean(row[SAMPLES_PARTS[3]:])
             means = [meanAmg, meanLH, meanNAC, meanPFC, meanSTR]
             for mean1 in means:
                 for mean2 in means:
@@ -146,24 +142,24 @@ def findShifts(alternatives):
 def writeShifted(shifted, path):
     counter = 0
     for item in shifted:
-        if np.sum(item[1]) > 0:
+        if np.sum(item.getSamples()) > 0:
             counter += 1
     file = open(path[:len(path) - 3] + "output.txt", 'w')
     file.write("Number of genes shifted:" + str(counter))
     file.write("\nTreshold:" + str(TRESHOLD))
     file.write("\nShift:" + str(PERCENT_OF_SHIFT * 100) + "%")
-    file.write("\n\nGeneName            Amg1    Amg2    LH1     LH2    Nac1     Nac2     Nac3    Nac4	 PFC2	 PFC3	 PFC4	 STR1	 STR2	 STR3	 STR4\n")
+    file.write("\n\nGeneName            Amg1    Amg2    LH1     LH2     Nac1    Nac2    Nac3    Nac4	 PFC2	 PFC3	 PFC4	 STR1	 STR2	 STR3	 STR4\n")
     for item in shifted:
-        if np.sum(item[1]) == 0:
+        if np.sum(item.getSamples()) == 0:
             continue
-        file.write(item[0])
-        file.write(" " * (20 - len(item[0])))
-        row = item[1][0]
+        file.write(item.getName())
+        file.write(" " * (20 - len(item.getName())))
+        row = item.getSamples()[0]
         for read in row:
             file.write(str('{0:.3f}'.format(read)))  # number of digits after the dot
             file.write('\t')
         file.write('\n')
-        for row in item[1][1:]:
+        for row in item.getSamples()[1:]:
             file.write(" " * 20)
             for read in row:
                 file.write(str('{0:.3f}'.format(read)))  # number of digits after the dot
@@ -176,22 +172,22 @@ def writeShifted(shifted, path):
 
 
 def main():
-    path = "C:\\Users\\Nudelman\\Desktop\\Files\\Project_CB\\Data\\data_0h_Acute_by_tissues.window.txt"
+    path = "C:\\Users\\Nudelman\\Desktop\\Files\\Project_CB\\Project_AltPolyA\\data\\data_0h_Acute_by_tissues.window.txt"
     fromFile = readTheFile(path)
     alternatives = findAlternatives(fromFile)
     shifts = findShifts(calculateFractions(alternatives))
-    genes = []
-    for item in alternatives:
-        for row in item[1]:
-            anova = Anova(row, [2,4,8,11,15])
-            p = anova.get_p_value()
-            if p <= 0.004:
-                genes.append(item[0])
-    shiftWithP = []
-    for item in shifts:
-        if item[0] in genes:
-            shiftWithP.append(item)
-    writeShifted(shiftWithP, path)
+    # genes = []
+    # for item in alternatives:
+    #     for row in item.getSamples():
+    #         anova = Anova(row, [2,4,8,11,15])
+    #         p = anova.get_p_value()
+    #         if p <= 0.004:
+    #             genes.append(item.getName())
+    # shiftWithP = []
+    # for item in shifts:
+    #     if item.getName() in genes:
+    #         shiftWithP.append(item)
+    writeShifted(shifts, path)
     # writeShifted(shifts, path)
     # pval = []
     # for item in shifts:
@@ -202,10 +198,10 @@ def main():
     #from here PCA and ploting:
     data = []
     for item in shifts:
-        for row in item[1]:
+        for row in item.getSamples():
             data.append(row)
     pca = PCAVisual(data)
-    pca.show(path)
+    # pca.show(path)
 
 
 

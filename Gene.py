@@ -4,20 +4,26 @@ will have gene name, matrix of start and end coordinates for each transcript,
 matrix of vectors of samples, strand and chromosome.
 """
 
+import numpy as np
+
 
 class Gene:
 
 
-    def __init__(self, name, m_samples, m_coordinates, strand, chr):
+    def __init__(self, name, m_samples, m_coordinates, strand, chrm):
         self.name = name
         self.m_samples = m_samples
         self.m_coordinates = m_coordinates
         self.strand = strand
-        self.chr = chr
+        self.chrm = chrm
 
 
     def getSamples(self):
         return self.m_samples
+
+
+    def setSamples(self, samples):
+        self.m_samples = samples
 
 
     def getCoordinates(self):
@@ -33,6 +39,10 @@ class Gene:
 
 
     def getChromosome(self):
-        return self.chr
+        return self.chrm
+
+
+    def appendSamples(self, samples):
+        self.m_samples = np.vstack((self.m_samples, samples))
 
 
