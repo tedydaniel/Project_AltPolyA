@@ -16,6 +16,7 @@ class Gene:
         self.m_coordinates = m_coordinates
         self.strand = strand
         self.chrm = chrm
+        self.maxShift = 0
 
 
     def getSamples(self):
@@ -44,5 +45,17 @@ class Gene:
 
     def appendSamples(self, samples):
         self.m_samples = np.vstack((self.m_samples, samples))
+
+
+    def appendCoordinates(self, coords):
+        self.m_coordinates = np.vstack((self.m_coordinates, coords))
+
+
+    def setMaxShift(self, maxShift):
+        self.maxShift = maxShift
+
+
+    def getMaxShift(self):
+        return self.maxShift
 
 

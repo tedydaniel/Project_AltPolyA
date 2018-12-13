@@ -35,7 +35,7 @@ class PCAVisual:
         plt.plot(t5[0], t5[1], 'mo', label='STR')
         plt.legend(loc='best', numpoints=1)
         # print("Explained variance ratio: ", pca.explained_variance_ratio_)
-        plt.savefig(os.path.dirname(path) + '/PCAfig.jpg')
+        # plt.savefig(os.path.dirname(path) + '/PCAfig.jpg')
         plt.show()
 
 

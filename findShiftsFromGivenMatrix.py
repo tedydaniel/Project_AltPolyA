@@ -2,15 +2,17 @@ import numpy as np
 from PCAVisual import PCAVisual
 from Anova import Anova
 from Gene import Gene
+import matplotlib.pyplot as plt
 
 
 #run parameters
-PERCENT_OF_SHIFT = 2
-PERCENT_OF_READS_HIST = 0.6
+PERCENT_OF_SHIFT = 2.5
+PERCENT_OF_READS_HIST = 0.5
 RATIO_TRESHOLD = 0.1
 #updated during the run:
 THRESHOLD = 0
 SAMPLES_PARTS = [2, 4, 8, 11]
+PEAK_WINDOW = 2000
 
 
 def readTheFile(path):
@@ -29,12 +31,20 @@ def readTheFile(path):
         reads = np.array([float(x) for x in columns[5:]])
         name = columns[0]
         chrm = columns[1]
+        if chrm == "chrM":
+            line = file.readline()
+            continue
         start = columns[2]
         end = columns[3]
         strand = columns[4]
-        data.append(Gene(name, reads, np.array([start, end]), strand, chrm))
+        if abs(float(end) - float(start)) > 3000:    #check with Reut, it's not OK
+            line = file.readline()
+            continue
+        data.append(Gene(name, reads, np.array([start, end]).astype(np.uint64), strand, chrm))
         line = file.readline()
     return list(sorted(data, key=lambda x: x.getName()))
+
+
 
 
 def findAlternatives(sortedList):
@@ -58,6 +68,7 @@ def findAlternatives(sortedList):
         counter = 1
         while afterTresholdData[index].getName() == afterTresholdData[index + counter].getName():
             afterTresholdData[index].appendSamples(afterTresholdData[index + counter].getSamples())
+            afterTresholdData[index].appendCoordinates(afterTresholdData[index + counter].getCoordinates())
             counter += 1
         index += counter
     alternatives = []
@@ -76,7 +87,12 @@ def readsHistogram(sortedList):
     """
     M = sortedList[0].getSamples()
     for item in sortedList:
-        M = np.vstack((M, item.getSamples()))
+        if max(item.getSamples()) < 5000:
+            M = np.vstack((M, item.getSamples()))
+    # a1 = np.transpose(M)[-4]
+    # a2 = np.transpose(M)[0]
+    # plt.plot(a1, a2, 'ro')
+    # plt.show()
     m = int(np.max(M))
     M = np.ndarray.flatten(M)
     # M = M[np.nonzero(M)]     #considering zeros or not?
@@ -121,6 +137,7 @@ def findShifts(alternatives):
     :return: Filtered list contains only the shifted genes
     """
     shifted = []
+    maxShift = 0
     for item in alternatives:
         isShifted = False
         for row in item.getSamples():
@@ -130,21 +147,101 @@ def findShifts(alternatives):
             meanPFC = np.mean(row[SAMPLES_PARTS[2]:SAMPLES_PARTS[3]])
             meanSTR = np.mean(row[SAMPLES_PARTS[3]:])
             means = [meanAmg, meanLH, meanNAC, meanPFC, meanSTR]
+            maxShift = 0
             for mean1 in means:
                 for mean2 in means:
-                    if mean1 / mean2 >= PERCENT_OF_SHIFT and (mean1 > RATIO_TRESHOLD and mean2 > RATIO_TRESHOLD): #and?
+                    if mean1 / mean2 >= PERCENT_OF_SHIFT and (mean1 >= RATIO_TRESHOLD or mean2 >= RATIO_TRESHOLD):
+                        if mean1 / mean2 > maxShift:
+                            maxShift = mean1 / mean2
                         isShifted = True
         if isShifted:
             shifted.append(item)
+            item.setMaxShift(maxShift)
+    for item in shifted:
+        print(item.getMaxShift())
     return shifted
 
 
-def writeShifted(shifted, path):
+def readAnnotation(path):
+    """
+    Returns a list of Gene objects sorted by names, the data is annotations
+    :param path:
+    :return:
+    """
+    file = open(path, 'r')
+    file.readline()
+    line = file.readline()
+    data = []
+    while line != '':
+        columns = line.split()
+        reads = np.array([])
+        name = columns[-4]
+        chrm = columns[2]
+        start = columns[4]
+        end = columns[5]
+        # if name == "Fntb":
+        #     print("Fntb " + start + " " + end)
+        strand = columns[3]
+        data.append(Gene(name, reads, np.array([start, end]).astype(np.uint64), strand, chrm))
+        line = file.readline()
+    return list(sorted(data, key=lambda x: x.getName()))
+
+
+def findAnnotatedShifts(shifted, annotation):
+    notAnnotated = []
+    for shifted_gene in shifted:
+        for coordinate in shifted_gene.getCoordinates():
+            isAnnotated = False
+            for annotated_gene in annotation:
+                if shifted_gene.getName() == annotated_gene.getName():
+                    if shifted_gene.getStrand() == '+' \
+                        and annotated_gene.getCoordinates()[1] + PEAK_WINDOW > coordinate[1] \
+                        and annotated_gene.getCoordinates()[1] - PEAK_WINDOW < coordinate[1]:
+                        isAnnotated = True
+                    elif shifted_gene.getStrand() == '-' \
+                        and annotated_gene.getCoordinates()[0] + PEAK_WINDOW > coordinate[0] \
+                        and annotated_gene.getCoordinates()[0] - PEAK_WINDOW < coordinate[0]:
+                        isAnnotated = True
+            if isAnnotated == False and shifted_gene.getName() not in notAnnotated:
+                notAnnotated.append(shifted_gene.getName())
+    print(len(notAnnotated))
+    for gene in notAnnotated:
+        print(gene)
+    return notAnnotated
+    #
+    # for gene_s in shifted:
+    #     for gene_a in annotation:
+    #         if gene_s.getName() == gene_a.getName():
+    #             coordinate = gene_s.getCoordinates()
+    #             for i in range(len(coordinate)):
+    #                 if gene_s.getStrand() == "+" and gene_a.getCoordinates()[1] + PEAK_WINDOW > coordinate[i][1]\
+    #                     and gene_a.getCoordinates()[1] - PEAK_WINDOW < coordinate[i][1]:
+    #                     annotated.append(Gene(gene_a.getName(), gene_s.getSamples()[i],
+    #                                           coordinate[i], "+", gene_s.getChromosome()))
+    #                 elif gene_s.getStrand() == "-" and gene_a.getCoordinates()[0] + PEAK_WINDOW > coordinate[i][0]\
+    #                     and gene_a.getCoordinates()[0] - PEAK_WINDOW < coordinate[i][0]:
+    #                     annotated.append(Gene(gene_a.getName(), gene_s.getSamples()[i],
+    #                                           coordinate[i], "-", gene_s.getChromosome()))
+    # temp = True
+    # for gene_s in shifted:
+    #     for coordinate in gene_s.getCoordinates():
+    #         for gene_a in annotated:
+    #             if coordinate[0] == gene_a.getCoordinates()[0] and coordinate[1] == gene_a.getCoordinates()[1]:
+    #                 temp = False
+    #         # if temp:
+    #             # print(gene_s.getName(), coordinate)
+    #         temp = True
+
+
+
+
+
+def writeShifted(shifted, path, name):
     counter = 0
     for item in shifted:
         if np.sum(item.getSamples()) > 0:
             counter += 1
-    file = open(path[:len(path) - 3] + "output.txt", 'w')
+    file = open(path[:len(path) - 3] + name, 'w')
     file.write("Number of genes shifted:" + str(counter))
     file.write("\nTreshold:" + str(TRESHOLD))
     file.write("\nShift:" + str(PERCENT_OF_SHIFT * 100) + "%")
@@ -175,7 +272,10 @@ def main():
     path = "C:\\Users\\Nudelman\\Desktop\\Files\\Project_CB\\Project_AltPolyA\\data\\data_0h_Acute_by_tissues.window.txt"
     fromFile = readTheFile(path)
     alternatives = findAlternatives(fromFile)
-    shifts = findShifts(calculateFractions(alternatives))
+    fracs = calculateFractions(alternatives)
+    shifts = findShifts(fracs)
+    annotations = readAnnotation("C:\\Users\\Nudelman\\Desktop\\Files\\Project_CB\\data\\mm10_form_ucsc.txt")
+    findAnnotatedShifts(shifts, annotations)
     # genes = []
     # for item in alternatives:
     #     for row in item.getSamples():
@@ -187,7 +287,7 @@ def main():
     # for item in shifts:
     #     if item.getName() in genes:
     #         shiftWithP.append(item)
-    writeShifted(shifts, path)
+    writeShifted(shifts, path, "output.txt")
     # writeShifted(shifts, path)
     # pval = []
     # for item in shifts:
@@ -196,16 +296,18 @@ def main():
     #         pval.append(anova.get_p_value())
     # print(min(pval), max(pval))
     #from here PCA and ploting:
-    data = []
-    for item in shifts:
-        for row in item.getSamples():
-            data.append(row)
-    pca = PCAVisual(data)
+    # data = []
+    # for item in shifts:
+    #     for row in item.getSamples():
+    #         data.append(row)
+    # pca = PCAVisual(data)
     # pca.show(path)
 
 
 
 if __name__ == "__main__":
     main()
+
+
 
 
