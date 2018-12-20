@@ -251,9 +251,9 @@ def showFracsScatered(fracs):
     for i in range(1, len(fracs)):
         M = np.append(M, fracs[i].getSamples(), axis=0)
     M = np.transpose(M)
-    MSE_M = np.zeros((M.shape[1], M.shape[1]))
-    for i in range(M.shape[1]):
-        for j in range(M.shape[1]):
+    MSE_M = np.zeros((M.shape[0], M.shape[0]))
+    for i in range(M.shape[0]):
+        for j in range(M.shape[0]):
             MSE_M[i][j] = np.sum(np.power(M[i] - M[j], 2))
     MSE_M = MSE_M * (255 / np.max(MSE_M))
     plt.imshow(MSE_M, interpolation='nearest', aspect='auto')
@@ -276,6 +276,7 @@ def main():
     fracs = calculateFractions(alternatives)
     showFracsScatered(fracs)
     shifts = findShifts(fracs)
+    showFracsScatered(shifts)
     annotations = readAnnotation(anotation_path)
     print("Checks the annotations...")
     cur = time.time()
