@@ -3,6 +3,8 @@ from PCAVisual import PCAVisual
 from Anova import Anova
 from Gene import Gene
 import matplotlib.pyplot as plt
+import sys
+import time
 
 
 #run parameters
@@ -13,6 +15,7 @@ RATIO_TRESHOLD = 0.1
 THRESHOLD = 0
 SAMPLES_PARTS = [2, 4, 8, 11]
 PEAK_WINDOW = 2000
+NOT_ANNOTATED = []
 
 
 def readTheFile(path):
@@ -157,8 +160,8 @@ def findShifts(alternatives):
         if isShifted:
             shifted.append(item)
             item.setMaxShift(maxShift)
-    for item in shifted:
-        print(item.getMaxShift())
+    # for item in shifted:
+    #     print(item.getMaxShift())
     return shifted
 
 
@@ -179,8 +182,6 @@ def readAnnotation(path):
         chrm = columns[2]
         start = columns[4]
         end = columns[5]
-        # if name == "Fntb":
-        #     print("Fntb " + start + " " + end)
         strand = columns[3]
         data.append(Gene(name, reads, np.array([start, end]).astype(np.uint64), strand, chrm))
         line = file.readline()
@@ -188,8 +189,9 @@ def readAnnotation(path):
 
 
 def findAnnotatedShifts(shifted, annotation):
-    notAnnotated = []
+    global NOT_ANNOTATED
     for shifted_gene in shifted:
+        counter = 1
         for coordinate in shifted_gene.getCoordinates():
             isAnnotated = False
             for annotated_gene in annotation:
@@ -202,38 +204,10 @@ def findAnnotatedShifts(shifted, annotation):
                         and annotated_gene.getCoordinates()[0] + PEAK_WINDOW > coordinate[0] \
                         and annotated_gene.getCoordinates()[0] - PEAK_WINDOW < coordinate[0]:
                         isAnnotated = True
-            if isAnnotated == False and shifted_gene.getName() not in notAnnotated:
-                notAnnotated.append(shifted_gene.getName())
-    print(len(notAnnotated))
-    for gene in notAnnotated:
-        print(gene)
-    return notAnnotated
-    #
-    # for gene_s in shifted:
-    #     for gene_a in annotation:
-    #         if gene_s.getName() == gene_a.getName():
-    #             coordinate = gene_s.getCoordinates()
-    #             for i in range(len(coordinate)):
-    #                 if gene_s.getStrand() == "+" and gene_a.getCoordinates()[1] + PEAK_WINDOW > coordinate[i][1]\
-    #                     and gene_a.getCoordinates()[1] - PEAK_WINDOW < coordinate[i][1]:
-    #                     annotated.append(Gene(gene_a.getName(), gene_s.getSamples()[i],
-    #                                           coordinate[i], "+", gene_s.getChromosome()))
-    #                 elif gene_s.getStrand() == "-" and gene_a.getCoordinates()[0] + PEAK_WINDOW > coordinate[i][0]\
-    #                     and gene_a.getCoordinates()[0] - PEAK_WINDOW < coordinate[i][0]:
-    #                     annotated.append(Gene(gene_a.getName(), gene_s.getSamples()[i],
-    #                                           coordinate[i], "-", gene_s.getChromosome()))
-    # temp = True
-    # for gene_s in shifted:
-    #     for coordinate in gene_s.getCoordinates():
-    #         for gene_a in annotated:
-    #             if coordinate[0] == gene_a.getCoordinates()[0] and coordinate[1] == gene_a.getCoordinates()[1]:
-    #                 temp = False
-    #         # if temp:
-    #             # print(gene_s.getName(), coordinate)
-    #         temp = True
-
-
-
+            if isAnnotated == False and shifted_gene.getName() not in NOT_ANNOTATED:
+                NOT_ANNOTATED.append(shifted_gene.getName())
+                shifted_gene.addNonAnnotated(counter)
+            counter += 1
 
 
 def writeShifted(shifted, path, name):
@@ -245,12 +219,18 @@ def writeShifted(shifted, path, name):
     file.write("Number of genes shifted:" + str(counter))
     file.write("\nTreshold:" + str(TRESHOLD))
     file.write("\nShift:" + str(PERCENT_OF_SHIFT * 100) + "%")
-    file.write("\n\nGeneName            Amg1    Amg2    LH1     LH2     Nac1    Nac2    Nac3    Nac4	 PFC2	 PFC3	 PFC4	 STR1	 STR2	 STR3	 STR4\n")
+    file.write ("\nNumber of non-annotated genes: " + str(len(NOT_ANNOTATED)))
+    file.write("\n\nGeneName            Amg1    Amg2    LH1     LH2     Nac1"
+               "    Nac2    Nac3    Nac4	 PFC2	 PFC3	 PFC4	 STR1	 STR2	 STR3	 STR4\n")
     for item in shifted:
         if np.sum(item.getSamples()) == 0:
             continue
-        file.write(item.getName())
-        file.write(" " * (20 - len(item.getName())))
+        if item.getName() in NOT_ANNOTATED:
+            file.write(str(item.getNonAnnotated()) + " " + item.getName())
+            file.write(" " * (17 - len(item.getNonAnnotated()) - len(item.getName())))
+        else:
+            file.write(item.getName())
+            file.write(" " * (20 - len(item.getName())))
         row = item.getSamples()[0]
         for read in row:
             file.write(str('{0:.3f}'.format(read)))  # number of digits after the dot
@@ -266,42 +246,43 @@ def writeShifted(shifted, path, name):
     file.close()
 
 
+def showFracsScatered(fracs):
+    M = fracs[0].getSamples()
+    for i in range(1, len(fracs)):
+        M = np.append(M, fracs[i].getSamples(), axis=0)
+    M = np.transpose(M)
+    MSE_M = np.zeros((M.shape[1], M.shape[1]))
+    for i in range(M.shape[1]):
+        for j in range(M.shape[1]):
+            MSE_M[i][j] = np.sum(np.power(M[i] - M[j], 2))
+    MSE_M = MSE_M * (255 / np.max(MSE_M))
+    plt.imshow(MSE_M, interpolation='nearest', aspect='auto')
+    plt.show()
+
 
 
 def main():
-    path = "C:\\Users\\Nudelman\\Desktop\\Files\\Project_CB\\Project_AltPolyA\\data\\data_0h_Acute_by_tissues.window.txt"
+    path = sys.argv[1]
+    anotation_path = sys.argv[2]
+    output_filename = sys.argv[3]
+    print("Reading the file...")
     fromFile = readTheFile(path)
     alternatives = findAlternatives(fromFile)
+    if len(alternatives) > 0:
+        print("Found alternatives...")
+    else:
+        print("No alternatives, check the given arguments")
+        raise SystemExit
     fracs = calculateFractions(alternatives)
+    showFracsScatered(fracs)
     shifts = findShifts(fracs)
-    annotations = readAnnotation("C:\\Users\\Nudelman\\Desktop\\Files\\Project_CB\\data\\mm10_form_ucsc.txt")
+    annotations = readAnnotation(anotation_path)
+    print("Checks the annotations...")
+    cur = time.time()
     findAnnotatedShifts(shifts, annotations)
-    # genes = []
-    # for item in alternatives:
-    #     for row in item.getSamples():
-    #         anova = Anova(row, [2,4,8,11,15])
-    #         p = anova.get_p_value()
-    #         if p <= 0.004:
-    #             genes.append(item.getName())
-    # shiftWithP = []
-    # for item in shifts:
-    #     if item.getName() in genes:
-    #         shiftWithP.append(item)
-    writeShifted(shifts, path, "output.txt")
-    # writeShifted(shifts, path)
-    # pval = []
-    # for item in shifts:
-    #     for row in item[1]:
-    #         anova = Anova(row, [2,4,8,11,15])
-    #         pval.append(anova.get_p_value())
-    # print(min(pval), max(pval))
-    #from here PCA and ploting:
-    # data = []
-    # for item in shifts:
-    #     for row in item.getSamples():
-    #         data.append(row)
-    # pca = PCAVisual(data)
-    # pca.show(path)
+    print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
+    print("Writing the output...")
+    writeShifted(shifts, path, output_filename)
 
 
 

@@ -17,6 +17,15 @@ class Gene:
         self.strand = strand
         self.chrm = chrm
         self.maxShift = 0
+        self.nonAnnotatedTranscripts = []
+
+
+    def addNonAnnotated(self, num):
+        self.nonAnnotatedTranscripts.append(num)
+
+
+    def getNonAnnotated(self):
+        return self.nonAnnotatedTranscripts
 
 
     def getSamples(self):
