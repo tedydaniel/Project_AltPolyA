@@ -18,6 +18,8 @@ PEAK_WINDOW = 2000
 NOT_ANNOTATED = []
 
 
+names = []
+
 def readTheFile(path):
     """
     Reading the file from tha path and returning a list of Gene objects
@@ -25,8 +27,10 @@ def readTheFile(path):
     :param path:
     :return:
     """
+    global names
     file = open(path, 'r')
-    file.readline()
+    names = file.readline().split()
+    names = [names[0]] + names[5:]
     line = file.readline()
     data = []
     while line != '':
@@ -40,9 +44,9 @@ def readTheFile(path):
         start = columns[2]
         end = columns[3]
         strand = columns[4]
-        if abs(float(end) - float(start)) > 3000:    #check with Reut, it's not OK
-            line = file.readline()
-            continue
+        # if abs(float(end) - float(start)) > 3000:    #check with Reut, it's not OK
+        #     line = file.readline()
+        #     continue
         data.append(Gene(name, reads, np.array([start, end]).astype(np.uint64), strand, chrm))
         line = file.readline()
     return list(sorted(data, key=lambda x: x.getName()))
@@ -219,9 +223,11 @@ def writeShifted(shifted, path, name):
     file.write("Number of genes shifted:" + str(counter))
     file.write("\nTreshold:" + str(TRESHOLD))
     file.write("\nShift:" + str(PERCENT_OF_SHIFT * 100) + "%")
-    file.write ("\nNumber of non-annotated genes: " + str(len(NOT_ANNOTATED)))
-    file.write("\n\nGeneName            Amg1    Amg2    LH1     LH2     Nac1"
-               "    Nac2    Nac3    Nac4	 PFC2	 PFC3	 PFC4	 STR1	 STR2	 STR3	 STR4\n")
+    file.write ("\nNumber of non-annotated genes: " + str(len(NOT_ANNOTATED)) + '\n\n')
+    file.write(names[0] + (20 - len(names[0])) * " ")
+    for name in names[1:]:
+        file.write(name + (12 - len(name)) * ' ')
+    file.write('\n')
     for item in shifted:
         if np.sum(item.getSamples()) == 0:
             continue
@@ -234,13 +240,13 @@ def writeShifted(shifted, path, name):
         row = item.getSamples()[0]
         for read in row:
             file.write(str('{0:.3f}'.format(read)))  # number of digits after the dot
-            file.write('\t')
+            file.write(7 * ' ')
         file.write('\n')
         for row in item.getSamples()[1:]:
             file.write(" " * 20)
             for read in row:
                 file.write(str('{0:.3f}'.format(read)))  # number of digits after the dot
-                file.write('\t')
+                file.write(7 * ' ')
             file.write('\n')
         file.write('\n')
     file.close()
@@ -274,16 +280,22 @@ def main():
         print("No alternatives, check the given arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
-    showFracsScatered(fracs)
+    # showFracsScatered(fracs)
     shifts = findShifts(fracs)
     showFracsScatered(shifts)
-    annotations = readAnnotation(anotation_path)
+    # annotations = readAnnotation(anotation_path)
     print("Checks the annotations...")
     cur = time.time()
-    findAnnotatedShifts(shifts, annotations)
+    # findAnnotatedShifts(shifts, annotations)
     print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
     print("Writing the output...")
     writeShifted(shifts, path, output_filename)
+    data = []
+    for item in shifts:
+        for row in item.getSamples():
+            data.append(row)
+    pca = PCAVisual(data)
+    pca.show(path)
 
 
 
