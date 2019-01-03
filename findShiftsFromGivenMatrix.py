@@ -13,9 +13,10 @@ PERCENT_OF_READS_HIST = 0.5
 RATIO_TRESHOLD = 0.1
 #updated during the run:
 THRESHOLD = 0
-SAMPLES_PARTS = [2, 4, 8, 11]
-PEAK_WINDOW = 2000
 NOT_ANNOTATED = []
+#
+SAMPLES_PARTS = [4,9]
+PEAK_WINDOW = 2000
 
 
 names = []
@@ -148,12 +149,16 @@ def findShifts(alternatives):
     for item in alternatives:
         isShifted = False
         for row in item.getSamples():
-            meanAmg = np.mean(row[:SAMPLES_PARTS[0]])
-            meanLH = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
-            meanNAC = np.mean(row[SAMPLES_PARTS[1]:SAMPLES_PARTS[2]])
-            meanPFC = np.mean(row[SAMPLES_PARTS[2]:SAMPLES_PARTS[3]])
-            meanSTR = np.mean(row[SAMPLES_PARTS[3]:])
-            means = [meanAmg, meanLH, meanNAC, meanPFC, meanSTR]
+            meanAcute = np.mean(row[:SAMPLES_PARTS[0]])
+            meanChallenge = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
+            meanChronic = np.mean(row[SAMPLES_PARTS[1]:])
+            # meanAmg = np.mean(row[:SAMPLES_PARTS[0]])
+            # meanLH = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
+            # meanNAC = np.mean(row[SAMPLES_PARTS[1]:SAMPLES_PARTS[2]])
+            # meanPFC = np.mean(row[SAMPLES_PARTS[2]:SAMPLES_PARTS[3]])
+            # meanSTR = np.mean(row[SAMPLES_PARTS[3]:])
+            # means = [meanAmg, meanLH, meanNAC, meanPFC, meanSTR]
+            means = [meanAcute, meanChallenge, meanChronic]
             maxShift = 0
             for mean1 in means:
                 for mean2 in means:
@@ -283,10 +288,10 @@ def main():
     # showFracsScatered(fracs)
     shifts = findShifts(fracs)
     showFracsScatered(shifts)
-    # annotations = readAnnotation(anotation_path)
+    annotations = readAnnotation(anotation_path)
     print("Checks the annotations...")
     cur = time.time()
-    # findAnnotatedShifts(shifts, annotations)
+    findAnnotatedShifts(shifts, annotations)
     print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
     print("Writing the output...")
     writeShifted(shifts, path, output_filename)
