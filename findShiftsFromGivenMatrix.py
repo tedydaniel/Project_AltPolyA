@@ -8,15 +8,15 @@ import time
 
 
 #run parameters
-PERCENT_OF_SHIFT = 2.5
+PERCENT_OF_SHIFT = 1
 PERCENT_OF_READS_HIST = 0.5
 RATIO_TRESHOLD = 0.1
 #updated during the run:
-THRESHOLD = 0
+THRESHOLD = 20
 NOT_ANNOTATED = []
 #
-SAMPLES_PARTS = [4,9]
-PEAK_WINDOW = 2000
+SAMPLES_PARTS = [2,4]
+PEAK_WINDOW = 1000
 
 
 names = []
@@ -66,7 +66,8 @@ def findAlternatives(sortedList):
     """
     #zeroing the data below treshold
     global TRESHOLD
-    TRESHOLD = readsHistogram(sortedList)
+    if THRESHOLD == 0:
+        TRESHOLD = readsHistogram(sortedList)
     afterTresholdData = []
     for i in range(len(sortedList)):
         if np.mean(sortedList[i].getSamples()) >= TRESHOLD:
@@ -164,6 +165,8 @@ def findShifts(alternatives):
                 for mean2 in means:
                     if mean1 / mean2 >= PERCENT_OF_SHIFT and (mean1 >= RATIO_TRESHOLD or mean2 >= RATIO_TRESHOLD):
                         if mean1 / mean2 > maxShift:
+                            # if mean1 != meanAcute and mean2 != meanAcute:
+                                # print(item.getName(), mean1 / mean2)
                             maxShift = mean1 / mean2
                         isShifted = True
         if isShifted:
@@ -271,6 +274,41 @@ def showFracsScatered(fracs):
     plt.show()
 
 
+def showMaxShifts(shifts, num_to_show = 100, show_coordinates = False, show_above = 1.0, show_names = False):
+    # global TRESHOLD
+    max_shifts = []
+    for shifted in shifts:
+        if shifted.getMaxShift() >= show_above:
+            max_shifts.append((shifted.getName(), shifted.getMaxShift(), shifted))
+    max_shifts.sort(key=lambda x:x[1])
+    max_shifts1 = []
+    genes = []
+    items = []
+    for shifted in max_shifts:
+        max_shifts1.append(shifted[1])
+        genes.append(shifted[0])
+        items.append(shifted[2])
+    max_shifts1 = max_shifts1[-num_to_show:]
+    genes = genes[-num_to_show:]
+    file = open("maxShifts_" + str(THRESHOLD) + ".txt", 'w')
+    for item in items:
+        file.write(item.getName() + "   " + item.getChromosome() + "    " +  str(item.getMaxShift()))
+        print(item.getName(), item.getChromosome(), item.getMaxShift())
+        if show_coordinates:
+            file.write('\n')
+            file.writelines(str(item.getCoordinates()))
+            file.write('\n')
+            print(item.getCoordinates())
+    plt.tick_params(labelsize= 7)
+    plt.plot(max_shifts1)
+    if show_names:
+        x = range(len(max_shifts1))
+        plt.xticks(x, genes, rotation=90)
+    plt.show()
+
+
+
+
 
 def main():
     path = sys.argv[1]
@@ -287,11 +325,12 @@ def main():
     fracs = calculateFractions(alternatives)
     # showFracsScatered(fracs)
     shifts = findShifts(fracs)
-    showFracsScatered(shifts)
-    annotations = readAnnotation(anotation_path)
+    showMaxShifts(shifts, num_to_show=500, show_above=1.5, show_coordinates=True)
+    # showFracsScatered(shifts)
+    # annotations = readAnnotation(anotation_path)
     print("Checks the annotations...")
     cur = time.time()
-    findAnnotatedShifts(shifts, annotations)
+    # findAnnotatedShifts(shifts, annotations)
     print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
     print("Writing the output...")
     writeShifted(shifts, path, output_filename)
@@ -299,7 +338,7 @@ def main():
     for item in shifts:
         for row in item.getSamples():
             data.append(row)
-    pca = PCAVisual(data)
+    pca = PCAVisual(data, SAMPLES_PARTS)
     pca.show(path)
 
 

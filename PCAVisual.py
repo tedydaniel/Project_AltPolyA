@@ -9,8 +9,9 @@ import os
 class PCAVisual:
 
 
-    def __init__(self, data):
+    def __init__(self, data, parts):
         self.data = data
+        self.parts = parts
 
 
     def show(self, path):
@@ -22,11 +23,11 @@ class PCAVisual:
         principalDf = pd.DataFrame(data=principalComponents
                                    , columns=['PC 1', 'PC 2'])
         t = np.transpose(principalDf.values)
-        t1 = np.array([t[0][:4], t[1][:4]])
-        t2 = np.array([t[0][4:9], t[1][4:9]])
+        t1 = np.array([t[0][:self.parts[0]], t[1][:self.parts[0]]])
+        t2 = np.array([t[0][self.parts[0]:self.parts[1]], t[1][self.parts[0]:self.parts[1]]])
         # t3 = np.array([t[0][4:6], t[1][4:6]])
         # t4 = np.array([t[0][6:8], t[1][6:8]])
-        t5 = np.array([t[0][9:], t[1][9:]])
+        t5 = np.array([t[0][self.parts[1]:], t[1][self.parts[1]:]])
         plt.figure()
         plt.plot(t1[0], t1[1], 'ro', label='Acute')
         plt.plot(t2[0], t2[1], 'bo', label='Challenge')
