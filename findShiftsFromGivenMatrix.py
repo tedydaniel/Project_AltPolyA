@@ -1,21 +1,20 @@
 import numpy as np
 from PCAVisual import PCAVisual
-from Anova import Anova
 from Gene import Gene
-import matplotlib.pyplot as plt
 import sys
 import time
+from Graphics import Graphics
 
 
 #run parameters
-PERCENT_OF_SHIFT = 2
+PERCENT_OF_SHIFT = 2.5
 PERCENT_OF_READS_HIST = 0.5
 RATIO_TRESHOLD = 0.1
 #updated during the run:
 THRESHOLD = 20
 NOT_ANNOTATED = []
 #
-SAMPLES_PARTS = [8,16]
+SAMPLES_PARTS = [2,4]
 PEAK_WINDOW = 1000
 
 
@@ -31,7 +30,7 @@ def readTheFile(path):
     global names
     file = open(path, 'r')
     names = file.readline().split()
-    names = [names[0]] + names[5:]
+    names = names[5:]
     line = file.readline()
     data = []
     while line != '':
@@ -98,10 +97,6 @@ def readsHistogram(sortedList):
     for item in sortedList:
         if max(item.getSamples()) < 5000:
             M = np.vstack((M, item.getSamples()))
-    # a1 = np.transpose(M)[-4]
-    # a2 = np.transpose(M)[0]
-    # plt.plot(a1, a2, 'ro')
-    # plt.show()
     m = int(np.max(M))
     M = np.ndarray.flatten(M)
     # M = M[np.nonzero(M)]     #considering zeros or not?
@@ -172,8 +167,6 @@ def findShifts(alternatives):
         if isShifted:
             shifted.append(item)
             item.setMaxShift(maxShift)
-    # for item in shifted:
-    #     print(item.getMaxShift())
     return shifted
 
 
@@ -260,63 +253,10 @@ def writeShifted(shifted, path, name):
     file.close()
 
 
-def showFracsScatered(fracs):
-    M = fracs[0].getSamples()
-    for i in range(1, len(fracs)):
-        M = np.append(M, fracs[i].getSamples(), axis=0)
-    M = np.transpose(M)
-    MSE_M = np.zeros((M.shape[0], M.shape[0]))
-    for i in range(M.shape[0]):
-        for j in range(M.shape[0]):
-            MSE_M[i][j] = np.sum(np.power(M[i] - M[j], 2))
-    MSE_M = MSE_M * (255 / np.max(MSE_M))
-    plt.imshow(MSE_M, interpolation='nearest', aspect='auto')
-    plt.show()
-
-
-def showMaxShifts(shifts, num_to_show = 100, show_coordinates = False, show_above = 1.0, show_names = False):
-    # global TRESHOLD
-    max_shifts = []
-    for shifted in shifts:
-        if shifted.getMaxShift() >= show_above:
-            max_shifts.append((shifted.getName(), shifted.getMaxShift(), shifted))
-    max_shifts.sort(key=lambda x:x[1])
-    max_shifts1 = []
-    genes = []
-    items = []
-    for shifted in max_shifts:
-        max_shifts1.append(shifted[1])
-        genes.append(shifted[0])
-        items.append(shifted[2])
-    max_shifts1 = max_shifts1[-num_to_show:]
-    genes = genes[-num_to_show:]
-    file = open("maxShifts_" + str(THRESHOLD) + ".txt", 'w')
-    for item in items:
-        file.write(item.getName() + "   " + item.getChromosome() + "    " +  str(item.getMaxShift()))
-        print(item.getName(), item.getChromosome(), item.getMaxShift())
-        if show_coordinates:
-            file.write('\n')
-            file.writelines(str(item.getCoordinates()))
-            file.write('\n')
-            print(item.getCoordinates())
-    plt.tick_params(labelsize= 7)
-    plt.plot(max_shifts1)
-    if show_names:
-        x = range(len(max_shifts1))
-        plt.xticks(x, genes, rotation=90)
-    plt.show()
-
-
-def dataToHeatMap(shifted):
-    for gene in shifted:
-        plt.imsave("data\\heat_maps\\" + gene.getName(), gene.getSamples())
-
-
-
-
 
 
 def main():
+    grph = Graphics()
     path = sys.argv[1]
     anotation_path = sys.argv[2]
     output_filename = sys.argv[3]
@@ -331,7 +271,7 @@ def main():
     fracs = calculateFractions(alternatives)
     # showFracsScatered(fracs)
     shifts = findShifts(fracs)
-    showMaxShifts(shifts, num_to_show=500, show_above=1.5, show_coordinates=True)
+    # showMaxShifts(shifts, num_to_show=500, show_above=1.5, show_coordinates=True)
     # showFracsScatered(shifts)
     # annotations = readAnnotation(anotation_path)
     print("Checks the annotations...")
@@ -339,7 +279,7 @@ def main():
     # findAnnotatedShifts(shifts, annotations)
     print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
     print("Writing the output...")
-    dataToHeatMap(shifts)
+    grph.dataToHeatMap(shifts, names)
     writeShifted(shifts, path, output_filename)
     data = []
     for item in shifts:
