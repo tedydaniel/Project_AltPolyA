@@ -8,14 +8,14 @@ import time
 
 
 #run parameters
-PERCENT_OF_SHIFT = 1
+PERCENT_OF_SHIFT = 2
 PERCENT_OF_READS_HIST = 0.5
 RATIO_TRESHOLD = 0.1
 #updated during the run:
 THRESHOLD = 20
 NOT_ANNOTATED = []
 #
-SAMPLES_PARTS = [2,4]
+SAMPLES_PARTS = [8,16]
 PEAK_WINDOW = 1000
 
 
@@ -66,8 +66,8 @@ def findAlternatives(sortedList):
     """
     #zeroing the data below treshold
     global TRESHOLD
-    if THRESHOLD == 0:
-        TRESHOLD = readsHistogram(sortedList)
+    # if THRESHOLD == 0:
+    TRESHOLD = readsHistogram(sortedList)
     afterTresholdData = []
     for i in range(len(sortedList)):
         if np.mean(sortedList[i].getSamples()) >= TRESHOLD:
@@ -307,6 +307,12 @@ def showMaxShifts(shifts, num_to_show = 100, show_coordinates = False, show_abov
     plt.show()
 
 
+def dataToHeatMap(shifted):
+    for gene in shifted:
+        plt.imsave("data\\heat_maps\\" + gene.getName(), gene.getSamples())
+
+
+
 
 
 
@@ -333,6 +339,7 @@ def main():
     # findAnnotatedShifts(shifts, annotations)
     print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
     print("Writing the output...")
+    dataToHeatMap(shifts)
     writeShifted(shifts, path, output_filename)
     data = []
     for item in shifts:
