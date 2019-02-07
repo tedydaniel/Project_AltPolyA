@@ -16,8 +16,13 @@ class Gene:
         self.m_coordinates = m_coordinates
         self.strand = strand
         self.chrm = chrm
-        self.maxShift = 0
+        self.maxShift = -1.0
         self.nonAnnotatedTranscripts = []
+        self.max_read = -1.0
+        self.mean_read = -1.0
+        self.num_transcript = -1
+        self.what_differs = ""
+        self.p_value = 0
 
 
     def addNonAnnotated(self, num):
@@ -60,11 +65,43 @@ class Gene:
         self.m_coordinates = np.vstack((self.m_coordinates, coords))
 
 
-    def setMaxShift(self, maxShift):
-        self.maxShift = maxShift
+    def setMaxShift(self, maxshift):
+        self.maxShift = maxshift
 
 
     def getMaxShift(self):
         return self.maxShift
+
+    def setMaxRead(self, maxr):
+        self.max_read = maxr
+
+    def getMaxRead(self):
+        return self.max_read
+
+    def setMeanRead(self, meanr):
+        self.mean_read = meanr
+
+    def getMeanRead(self):
+        return self.mean_read
+
+    def setNumTranscript(self, num):
+        self.num_transcript = num
+
+    def getNumTranscript(self):
+        return self.num_transcript
+
+    def setWhatDiffers(self, what):
+        self.what_differs = what
+
+    def getWhatDiffers(self):
+        return self.what_differs
+
+    def setPValue(self, p):
+        self.p_value = p
+
+    def getPValue(self):
+        return  self.p_value
+
+
 
 

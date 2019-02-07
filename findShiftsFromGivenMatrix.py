@@ -4,21 +4,23 @@ from Gene import Gene
 import sys
 import time
 from Graphics import Graphics
+import scipy.stats as stats
 
 
 #run parameters
-PERCENT_OF_SHIFT = 2.5
+PERCENT_OF_SHIFT = 1.5
 PERCENT_OF_READS_HIST = 0.5
-RATIO_TRESHOLD = 0.1
+RATIO_TRESHOLD = 0.2
 #updated during the run:
 THRESHOLD = 20
 NOT_ANNOTATED = []
 #
-SAMPLES_PARTS = [2,4]
+SAMPLES_PARTS = [8, 16]
 PEAK_WINDOW = 1000
 
 
 names = []
+
 
 def readTheFile(path):
     """
@@ -41,12 +43,9 @@ def readTheFile(path):
         if chrm == "chrM":
             line = file.readline()
             continue
-        start = columns[2]
-        end = columns[3]
+        start = int(columns[2])
+        end = int(columns[3])
         strand = columns[4]
-        # if abs(float(end) - float(start)) > 3000:    #check with Reut, it's not OK
-        #     line = file.readline()
-        #     continue
         data.append(Gene(name, reads, np.array([start, end]).astype(np.uint64), strand, chrm))
         line = file.readline()
     return list(sorted(data, key=lambda x: x.getName()))
@@ -120,6 +119,8 @@ def calculateFractions(alternatives):
     :return: List with fractions of the reads from the original list
     """
     for item in alternatives:
+        item.setMaxRead(np.max(item.getSamples()))
+        item.setMeanRead(np.mean(item.getSamples()))
         Mt = np.transpose(item.getSamples())
         for row in Mt:
             s = np.sum(row)
@@ -142,12 +143,20 @@ def findShifts(alternatives):
     """
     shifted = []
     maxShift = 0
+    samples = {0: "Acute", 1:"Challenge", 2:"Chronic"}
     for item in alternatives:
         isShifted = False
+        maxShift = 0.0
+        counter = 0
+        what = ""
+        p_value = 0
+        transcript = 0
         for row in item.getSamples():
             meanAcute = np.mean(row[:SAMPLES_PARTS[0]])
             meanChallenge = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
             meanChronic = np.mean(row[SAMPLES_PARTS[1]:])
+            p = stats.kruskal(row[:SAMPLES_PARTS[0]], row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]],
+                                    row[SAMPLES_PARTS[1]:])[1]
             # meanAmg = np.mean(row[:SAMPLES_PARTS[0]])
             # meanLH = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
             # meanNAC = np.mean(row[SAMPLES_PARTS[1]:SAMPLES_PARTS[2]])
@@ -155,18 +164,27 @@ def findShifts(alternatives):
             # meanSTR = np.mean(row[SAMPLES_PARTS[3]:])
             # means = [meanAmg, meanLH, meanNAC, meanPFC, meanSTR]
             means = [meanAcute, meanChallenge, meanChronic]
-            maxShift = 0
-            for mean1 in means:
-                for mean2 in means:
-                    if mean1 / mean2 >= PERCENT_OF_SHIFT and (mean1 >= RATIO_TRESHOLD or mean2 >= RATIO_TRESHOLD):
-                        if mean1 / mean2 > maxShift:
-                            # if mean1 != meanAcute and mean2 != meanAcute:
-                                # print(item.getName(), mean1 / mean2)
-                            maxShift = mean1 / mean2
+            for i in range(len(means)):
+                mean1 = means[i]
+                for j in range(len(means)):
+                    mean2 = means[j]
+                    if mean2 > 0 and (mean1 / mean2 >= PERCENT_OF_SHIFT) and \
+                            (mean1 >= RATIO_TRESHOLD or mean2 >= RATIO_TRESHOLD)\
+                            and counter not in item.getNonAnnotated() \
+                            and (abs(int(item.getCoordinates()[counter][1]) - int(item.getCoordinates()[counter][0])) <= 500):
+                        if (mean1 / mean2) > maxShift:
+                            maxShift = (mean1 / mean2)
+                            transcript = counter
+                            p_value = p
+                            what = samples[i] + "-" + samples[j]
                         isShifted = True
+            counter += 1
         if isShifted:
             shifted.append(item)
             item.setMaxShift(maxShift)
+            item.setNumTranscript(transcript)
+            item.setWhatDiffers(what)
+            item.setPValue(p_value)
     return shifted
 
 
@@ -253,15 +271,33 @@ def writeShifted(shifted, path, name):
     file.close()
 
 
+    # def removeNotAnnotated(shifted):
+    #     shifts = []
+    #     for gene in shifted:
+    #         if gene.getName() in NOT_ANNOTATED:
+
+
 
 
 def main():
+    global SAMPLES_PARTS
+    SAMPLES_PARTS[0] = int(input("Number of samples of the first experiment: "))
+    SAMPLES_PARTS[1] = SAMPLES_PARTS[0] + int(input("Number of samples of the second experiment: "))
     grph = Graphics()
     path = sys.argv[1]
     anotation_path = sys.argv[2]
     output_filename = sys.argv[3]
     print("Reading the file...")
     fromFile = readTheFile(path)
+
+    data = []
+    for item in fromFile:
+        row = item.getSamples()
+        data.append((row - np.mean(row)) / np.std(row))
+    pca = PCAVisual(data, SAMPLES_PARTS)
+    pca.show(path)
+
+
     alternatives = findAlternatives(fromFile)
     if len(alternatives) > 0:
         print("Found alternatives...")
@@ -269,22 +305,24 @@ def main():
         print("No alternatives, check the given arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
+    annotations = readAnnotation(anotation_path)
+    print("Checks the annotations...")
+    cur = time.time()
+    findAnnotatedShifts(fracs, annotations)
+    print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
     # showFracsScatered(fracs)
     shifts = findShifts(fracs)
     # showMaxShifts(shifts, num_to_show=500, show_above=1.5, show_coordinates=True)
     # showFracsScatered(shifts)
-    # annotations = readAnnotation(anotation_path)
-    print("Checks the annotations...")
-    cur = time.time()
     # findAnnotatedShifts(shifts, annotations)
-    print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
+    # shifts = removeNotAnnotated(shifts)
     print("Writing the output...")
     grph.dataToHeatMap(shifts, names)
     writeShifted(shifts, path, output_filename)
     data = []
     for item in shifts:
         for row in item.getSamples():
-            data.append(row)
+            data.append((row - np.mean(row)) / np.std(row))
     pca = PCAVisual(data, SAMPLES_PARTS)
     pca.show(path)
 

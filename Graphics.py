@@ -3,7 +3,6 @@ from Gene import Gene
 import matplotlib.pyplot as plt
 import seaborn as sns
 from fpdf import FPDF
-from PIL import Image
 import os
 
 
@@ -29,24 +28,24 @@ class Graphics:
         counter = 1
         total = len(shifted)
         pdf.add_page()
-        # sns.set(font_scale=1)
+        shifted.sort(key=lambda x: x.getMaxShift())
+        shifted = shifted[::-1]
         for gene in shifted:
             ax = sns.heatmap(np.transpose(gene.getSamples()), vmin=0.0, vmax=1.0,
                              annot=True, fmt=".3g", linewidths=.5, yticklabels=names)
             plt.axes(ax)
-            plt.title(gene.getName())
-            plt.yticks(rotation=90)
-            # plt.show()
-            plt.savefig("data\\heat_maps\\" + gene.getName(), dpi=80)
-            # im = Image.open("data\\heat_maps\\" + gene.getName() + ".png")
-            # if counter % 2:
-            #     pdf.add_page()
+            plt.title(gene.getName() + " \n max_shift = " + str('{0:.3f}'.format(gene.getMaxShift())) + " , max_read = "
+                      + str(gene.getMaxRead()) + " , mean_read = " + str('{0:.3f}'.format(gene.getMeanRead()))
+                      + "\n transcript = " + str(gene.getNumTranscript()) + " , " + gene.getWhatDiffers()
+                      + " , p_value = " + str('{0:.5f}'.format(gene.getPValue())))
+            plt.yticks(rotation=0)
+            plt.savefig("data\\heat_maps\\" + gene.getName() + ".png", dpi=65)
             pdf.image("data\\heat_maps\\" + gene.getName() + ".png")
             # os.remove("data\\heat_maps\\" + gene.getName() + ".png")
             plt.close()
             print(str(counter) + " out of " + str(total))
             counter += 1
-        pdf.output("genes.pdf", "F")
+        pdf.output("all_hours_striatum_above20percent_150shift_annotated.pdf", "F")
 
 
     def showMaxShifts(self, shifts, num_to_show=100, show_coordinates=False, show_above=1.0, show_names=False):

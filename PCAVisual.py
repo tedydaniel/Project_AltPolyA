@@ -35,6 +35,9 @@ class PCAVisual:
         # plt.plot(t4[0], t4[1], 'yo', label='PFC')
         plt.plot(t5[0], t5[1], 'mo', label='Chronic')
         plt.legend(loc='best', numpoints=1)
+        explained_var = pca.explained_variance_ratio_
+        plt.xlabel("PC1(explained_variance = " + str('{0:.3f}'.format(explained_var[0])) + ")")
+        plt.ylabel("PC2(explained_variance = " + str('{0:.3f}'.format(explained_var[1])) + ")")
         # print("Explained variance ratio: ", pca.explained_variance_ratio_)
         # plt.savefig(os.path.dirname(path) + '/PCAfig.jpg')
         plt.show()
