@@ -10,19 +10,52 @@ import numpy as np
 class Gene:
 
 
-    def __init__(self, name, m_samples, m_coordinates, strand, chrm):
+    def __init__(self, name, m_samples, m_coordinates, strand, chrm, m_cds = []):
         self.name = name
-        self.m_samples = m_samples
-        self.m_coordinates = m_coordinates
+        self.m_samples = m_samples #numpy array
+        self.m_coordinates = m_coordinates #numpy array
+        self.m_cds = m_cds
         self.strand = strand
         self.chrm = chrm
         self.maxShift = -1.0
         self.nonAnnotatedTranscripts = []
         self.max_read = -1.0
         self.mean_read = -1.0
-        self.num_transcript = -1
-        self.what_differs = ""
+        self.num_transcript = -1 #number of the transcript that differs
+        self.what_differs = "" #what two kinds of experiences differs
         self.p_value = 0
+        self.relative_length = []
+
+
+    def calculate_lengths(self):
+        """
+        :return: calculates the difference between the first coordinate of each transcript
+        and the first coordinate of the most expressed transcript
+        """
+        related = 0
+        for transcript in range(self.m_samples.shape[0]):
+            if np.mean(self.m_samples[transcript]) > np.mean(self.m_samples[related]):
+                related = transcript
+        for i in range(self.m_coordinates.shape[0]):
+            if self.strand == '+':
+                self.relative_length.append(self.m_coordinates[i][0] - self.m_coordinates[related][0])
+            else:
+                self.relative_length.append(self.m_coordinates[related][0] - self.m_coordinates[i][0])
+
+
+
+    def getLengths(self):
+        if self.relative_length:
+            return self.relative_length
+        print("Not calculated, use calculate_lengths method")
+
+
+    def getCDS(self):
+        return self.m_cds
+
+
+    def setCDS(self, cds):
+        self.m_cds = cds
 
 
     def addNonAnnotated(self, num):
@@ -100,7 +133,7 @@ class Gene:
         self.p_value = p
 
     def getPValue(self):
-        return  self.p_value
+        return self.p_value
 
 
 

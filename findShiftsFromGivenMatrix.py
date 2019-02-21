@@ -5,10 +5,11 @@ import sys
 import time
 from Graphics import Graphics
 import scipy.stats as stats
+# from fpdf import FPDF
 
 
 #run parameters
-PERCENT_OF_SHIFT = 1.5
+PERCENT_OF_SHIFT = 1.3
 PERCENT_OF_READS_HIST = 0.5
 RATIO_TRESHOLD = 0.2
 #updated during the run:
@@ -46,7 +47,7 @@ def readTheFile(path):
         start = int(columns[2])
         end = int(columns[3])
         strand = columns[4]
-        data.append(Gene(name, reads, np.array([start, end]).astype(np.uint64), strand, chrm))
+        data.append(Gene(name, reads, np.array([start, end]).astype(np.int), strand, chrm))
         line = file.readline()
     return list(sorted(data, key=lambda x: x.getName()))
 
@@ -205,8 +206,10 @@ def readAnnotation(path):
         chrm = columns[2]
         start = columns[4]
         end = columns[5]
+        cds_start = columns[6]
+        cds_end = columns[7]
         strand = columns[3]
-        data.append(Gene(name, reads, np.array([start, end]).astype(np.uint64), strand, chrm))
+        data.append(Gene(name, reads, np.array([start, end]).astype(np.int), strand, chrm, np.array([cds_start, cds_end])))
         line = file.readline()
     return list(sorted(data, key=lambda x: x.getName()))
 
@@ -231,6 +234,7 @@ def findAnnotatedShifts(shifted, annotation):
                 NOT_ANNOTATED.append(shifted_gene.getName())
                 shifted_gene.addNonAnnotated(counter)
             counter += 1
+        print(NOT_ANNOTATED)
 
 
 def writeShifted(shifted, path, name):
@@ -290,12 +294,12 @@ def main():
     print("Reading the file...")
     fromFile = readTheFile(path)
 
-    data = []
-    for item in fromFile:
-        row = item.getSamples()
-        data.append((row - np.mean(row)) / np.std(row))
-    pca = PCAVisual(data, SAMPLES_PARTS)
-    pca.show(path)
+    # data = []
+    # for item in fromFile:
+    #     row = item.getSamples()
+    #     data.append((row - np.mean(row)) / np.std(row))
+    # pca = PCAVisual(data, SAMPLES_PARTS)
+    # pca.show(path)
 
 
     alternatives = findAlternatives(fromFile)
@@ -305,11 +309,20 @@ def main():
         print("No alternatives, check the given arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
+
+    # data = []
+    # for item in fracs:
+    #     samples = item.getSamples()
+    #     for row in samples:
+    #         data.append((row - np.mean(row)) / np.std(row))
+    # pca = PCAVisual(data, SAMPLES_PARTS)
+    # pca.show(path)
     annotations = readAnnotation(anotation_path)
     print("Checks the annotations...")
     cur = time.time()
     findAnnotatedShifts(fracs, annotations)
     print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
+    print(NOT_ANNOTATED)
     # showFracsScatered(fracs)
     shifts = findShifts(fracs)
     # showMaxShifts(shifts, num_to_show=500, show_above=1.5, show_coordinates=True)
@@ -329,6 +342,14 @@ def main():
 
 
 if __name__ == "__main__":
+    # pdf = FPDF()
+    # pdf.add_page()
+    # pdf.set_text_color(255,255,255)
+    # pdf.set_font('Arial', '', 12)
+    # pdf.write(1, 'hi')
+    # pdf.output("test.pdf")
+    # while True:
+    #     continue
     main()
 
 

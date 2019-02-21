@@ -28,24 +28,30 @@ class Graphics:
         counter = 1
         total = len(shifted)
         pdf.add_page()
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font('Arial', '', 12)
         shifted.sort(key=lambda x: x.getMaxShift())
         shifted = shifted[::-1]
         for gene in shifted:
+            gene.calculate_lengths()
             ax = sns.heatmap(np.transpose(gene.getSamples()), vmin=0.0, vmax=1.0,
-                             annot=True, fmt=".3g", linewidths=.5, yticklabels=names)
+                             annot=True, fmt=".3g", linewidths=.5, yticklabels=names, xticklabels=gene.getLengths())
             plt.axes(ax)
-            plt.title(gene.getName() + " \n max_shift = " + str('{0:.3f}'.format(gene.getMaxShift())) + " , max_read = "
+            pdf.write(0, gene.getName() + "\n")
+            plt.title(gene.getName() + "\n max_shift = " + str('{0:.3f}'.format(gene.getMaxShift())) + " , max_read = "
                       + str(gene.getMaxRead()) + " , mean_read = " + str('{0:.3f}'.format(gene.getMeanRead()))
                       + "\n transcript = " + str(gene.getNumTranscript()) + " , " + gene.getWhatDiffers()
                       + " , p_value = " + str('{0:.5f}'.format(gene.getPValue())))
             plt.yticks(rotation=0)
             plt.savefig("data\\heat_maps\\" + gene.getName() + ".png", dpi=65)
+
             pdf.image("data\\heat_maps\\" + gene.getName() + ".png")
+            # pdf.
             # os.remove("data\\heat_maps\\" + gene.getName() + ".png")
             plt.close()
             print(str(counter) + " out of " + str(total))
             counter += 1
-        pdf.output("all_hours_striatum_above20percent_150shift_annotated.pdf", "F")
+        pdf.output("all_hours_str_above20percent_130shift_annotated_with_lengths.pdf", "F")
 
 
     def showMaxShifts(self, shifts, num_to_show=100, show_coordinates=False, show_above=1.0, show_names=False):

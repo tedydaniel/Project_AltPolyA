@@ -16,6 +16,7 @@ class PCAVisual:
 
     def show(self, path):
         data = pd.DataFrame(data=np.transpose(self.data))
+
         x = StandardScaler().fit_transform(data)
         data = pd.DataFrame(data=x)
         pca = PCA(n_components=2)
