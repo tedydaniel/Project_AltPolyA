@@ -148,16 +148,19 @@ def findShifts(alternatives):
     for item in alternatives:
         isShifted = False
         maxShift = 0.0
-        counter = 0
+        # counter = 0
         what = ""
         p_value = 0
         transcript = 0
-        for row in item.getSamples():
-            meanAcute = np.mean(row[:SAMPLES_PARTS[0]])
-            meanChallenge = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
-            meanChronic = np.mean(row[SAMPLES_PARTS[1]:])
-            p = stats.kruskal(row[:SAMPLES_PARTS[0]], row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]],
-                                    row[SAMPLES_PARTS[1]:])[1]
+        m_samples = item.getSamples()
+        for row in range(m_samples.shape[0]):
+            if row in item.getNonAnnotated():
+                continue
+            meanAcute = np.mean(m_samples[row][:SAMPLES_PARTS[0]])
+            meanChallenge = np.mean(m_samples[row][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
+            meanChronic = np.mean(m_samples[row][SAMPLES_PARTS[1]:])
+            p = stats.kruskal(m_samples[row][:SAMPLES_PARTS[0]], m_samples[row][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]],
+                              m_samples[row][SAMPLES_PARTS[1]:])[1]
             # meanAmg = np.mean(row[:SAMPLES_PARTS[0]])
             # meanLH = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
             # meanNAC = np.mean(row[SAMPLES_PARTS[1]:SAMPLES_PARTS[2]])
@@ -171,19 +174,19 @@ def findShifts(alternatives):
                     mean2 = means[j]
                     if mean2 > 0 and (mean1 / mean2 >= PERCENT_OF_SHIFT) and \
                             (mean1 >= RATIO_TRESHOLD or mean2 >= RATIO_TRESHOLD)\
-                            and counter not in item.getNonAnnotated() \
-                            and (abs(int(item.getCoordinates()[counter][1]) - int(item.getCoordinates()[counter][0])) <= 500):
+                            and (abs(int(item.getCoordinates()[row][1]) - int(item.getCoordinates()[row][0])) <= 500):
+                            # and counter not in item.getNonAnnotated() \
                         if (mean1 / mean2) > maxShift:
                             maxShift = (mean1 / mean2)
-                            transcript = counter
+                            transcript = row
                             p_value = p
                             what = samples[i] + "-" + samples[j]
                         isShifted = True
-            counter += 1
+            # counter += 1
         if isShifted:
             shifted.append(item)
             item.setMaxShift(maxShift)
-            item.setNumTranscript(transcript)
+            item.setNumTranscript(transcript + 1)
             item.setWhatDiffers(what)
             item.setPValue(p_value)
     return shifted
@@ -198,20 +201,26 @@ def readAnnotation(path):
     file = open(path, 'r')
     file.readline()
     line = file.readline()
-    data = []
+    data = {}
+    # data = []
     while line != '':
         columns = line.split()
-        reads = np.array([])
+    #     reads = np.array([])
         name = columns[-4]
-        chrm = columns[2]
-        start = columns[4]
-        end = columns[5]
-        cds_start = columns[6]
-        cds_end = columns[7]
+    #     chrm = columns[2]
+        start = int(columns[4])
+        end = int(columns[5])
+        cds_start = int(columns[6])
+        cds_end = int(columns[7])
         strand = columns[3]
-        data.append(Gene(name, reads, np.array([start, end]).astype(np.int), strand, chrm, np.array([cds_start, cds_end])))
+    #     data.append(Gene(name, reads, np.array([start, end]).astype(np.int), strand, chrm, np.array([cds_start, cds_end])))
         line = file.readline()
-    return list(sorted(data, key=lambda x: x.getName()))
+        if name in data.keys():
+            data[name] = np.vstack((data[name], np.array([start, end, cds_start, cds_end])))
+        else:
+            data[name] = np.array([[start, end, cds_start, cds_end]])
+    # return list(sorted(data, key=lambda x: x.getName()))
+    return data
 
 
 def findAnnotatedShifts(shifted, annotation):
@@ -220,21 +229,36 @@ def findAnnotatedShifts(shifted, annotation):
         counter = 1
         for coordinate in shifted_gene.getCoordinates():
             isAnnotated = False
-            for annotated_gene in annotation:
-                if shifted_gene.getName() == annotated_gene.getName():
-                    if shifted_gene.getStrand() == '+' \
-                        and annotated_gene.getCoordinates()[1] + PEAK_WINDOW > coordinate[1] \
-                        and annotated_gene.getCoordinates()[1] - PEAK_WINDOW < coordinate[1]:
-                        isAnnotated = True
-                    elif shifted_gene.getStrand() == '-' \
-                        and annotated_gene.getCoordinates()[0] + PEAK_WINDOW > coordinate[0] \
-                        and annotated_gene.getCoordinates()[0] - PEAK_WINDOW < coordinate[0]:
-                        isAnnotated = True
+            for line in annotation[shifted_gene.getName()]:
+                if shifted_gene.getStrand() == '+' \
+                        and line[1] + PEAK_WINDOW > coordinate[1] \
+                        and line[1] - PEAK_WINDOW < coordinate[1]:
+                    isAnnotated = True
+                elif shifted_gene.getStrand() == '-' \
+                        and line[0] + PEAK_WINDOW > coordinate[0] \
+                        and line[0] - PEAK_WINDOW < coordinate[0]:
+                    isAnnotated = True
             if isAnnotated == False and shifted_gene.getName() not in NOT_ANNOTATED:
                 NOT_ANNOTATED.append(shifted_gene.getName())
                 shifted_gene.addNonAnnotated(counter)
             counter += 1
-        print(NOT_ANNOTATED)
+        # for coordinate in shifted_gene.getCoordinates():
+        #     isAnnotated = False
+        #     for annotated_gene in annotation:
+        #         if shifted_gene.getName() == annotated_gene.getName():
+        #             if shifted_gene.getStrand() == '+' \
+        #                 and annotated_gene.getCoordinates()[1] + PEAK_WINDOW > coordinate[1] \
+        #                 and annotated_gene.getCoordinates()[1] - PEAK_WINDOW < coordinate[1]:
+        #                 isAnnotated = True
+        #             elif shifted_gene.getStrand() == '-' \
+        #                 and annotated_gene.getCoordinates()[0] + PEAK_WINDOW > coordinate[0] \
+        #                 and annotated_gene.getCoordinates()[0] - PEAK_WINDOW < coordinate[0]:
+        #                 isAnnotated = True
+        #     if isAnnotated == False and shifted_gene.getName() not in NOT_ANNOTATED:
+        #         NOT_ANNOTATED.append(shifted_gene.getName())
+        #         shifted_gene.addNonAnnotated(counter)
+        #     counter += 1
+        # print(NOT_ANNOTATED)
 
 
 def writeShifted(shifted, path, name):
