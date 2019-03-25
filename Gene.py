@@ -23,8 +23,9 @@ class Gene:
         self.mean_read = -1.0
         self.num_transcript = -1 #number of the transcript that differs
         self.what_differs = "" #what two kinds of experiences differs
-        self.p_value = 0
+        self.p_value = -1
         self.relative_length = []
+        self.percent_of_expression = -1
 
 
     def calculate_lengths(self):
@@ -56,6 +57,14 @@ class Gene:
 
     def setCDS(self, cds):
         self.m_cds = cds
+
+
+    def getPercentOfExpression(self):
+        return self.percent_of_expression
+
+
+    def setPercentOfExpression(self, new_percent):
+        self.percent_of_expression = new_percent
 
 
     def addNonAnnotated(self, num):

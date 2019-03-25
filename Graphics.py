@@ -32,7 +32,11 @@ class Graphics:
         pdf.set_font('Arial', '', 12)
         shifted.sort(key=lambda x: x.getMaxShift())
         shifted = shifted[::-1]
+        # file = open("all_hours_str_symbols_annotated.txt", 'w')
         for gene in shifted:
+            # if gene.getNumTranscript() in gene.getNonAnnotated():
+            #     continue
+            # file.write(gene.getName() + "\n")
             gene.calculate_lengths()
             ax = sns.heatmap(np.transpose(gene.getSamples()), vmin=0.0, vmax=1.0,
                              annot=True, fmt=".3g", linewidths=.5, yticklabels=names, xticklabels=gene.getLengths())
@@ -51,7 +55,59 @@ class Graphics:
             plt.close()
             print(str(counter) + " out of " + str(total))
             counter += 1
-        pdf.output("all_hours_str_above20percent_130shift_annotated_with_lengths.pdf", "F")
+        # file.close()
+        pdf.output("all_hours_str_above20percent_all_annotated_and_significant.pdf", "F")
+
+
+    def scatterPvalFold(self, shifts):
+        shifts.sort(key=lambda x: x.getPValue())
+        forhist = []
+        maxshift = []
+        togoterm = []
+        topdf = []
+        for gene in shifts:
+            if not gene.getNonAnnotated():
+                togoterm.append(gene.getName())
+                topdf.append(gene)
+                p = gene.getPValue()
+                forhist.append(-np.log10(p))
+                maxshift.append(gene.getMaxShift())
+        # plt.hist(forhist, bins=100)
+        # # plt.plot(maxshift)
+        # plt.show()
+        bluex = []
+        bluey = []
+        redx = []
+        redy = []
+        topdf2 = []
+        file1 = open("interesting.txt", 'w')
+        file2 = open("all.txt", 'w')
+        for i in range(len(forhist)):
+            file2.write(togoterm[i] + "\n")
+            if maxshift[i] < np.exp(-15 * (forhist[i] - 2)) + 1.3:
+            # if ((forhist[i] - 4.5) ** 2) / 3 + (maxshift[i] - 3.5) ** 2 > 5:
+                bluex.append(forhist[i])
+                bluey.append(maxshift[i])
+            else:
+                topdf2.append(topdf[i])
+                file1.write(togoterm[i] + '\n')
+                redx.append(forhist[i])
+                redy.append(maxshift[i])
+        file1.close()
+        file2.close()
+        t = np.arange(0.0, 4.5, 0.1)
+        s = [np.exp(-15 * (x - 2)) + 1.3 for x in t]
+        plt.plot(t, s, linestyle='dashed')
+        plt.ylim([0, 3])
+        print(len(bluex), len(bluey), len(redx), len(redy))
+        plt.scatter(bluex, bluey, color='b', label="Low fold change and high p-value")
+        plt.scatter(redx, redy, color='r', label="High fold change and low p-value")
+        plt.xlabel("-log(p-value)")
+        plt.ylabel("fold change")
+        plt.title("Scatter plot of p-value (Kruskal Wallis) vs Fold change")
+        plt.legend(loc='upper left')
+        plt.show()
+        return topdf2
 
 
     def showMaxShifts(self, shifts, num_to_show=100, show_coordinates=False, show_above=1.0, show_names=False):
@@ -84,6 +140,29 @@ class Graphics:
         if show_names:
             x = range(len(max_shifts1))
             plt.xticks(x, genes, rotation=90)
+        plt.show()
+        
+    
+    def fold_change_and_percent(self, shifted):
+        tograph = []
+        for gene in shifted:
+            if not gene.getNonAnnotated():
+                tograph.append(gene)
+        tograph.sort(key= lambda x: x.getMaxShift())
+        tograph.reverse()
+        fig, ax1 = plt.subplots()
+        treshold = [x for x in tograph if x.getMaxShift() >= 1.3]
+        ax1.plot(np.arange(len(treshold)), [x.getMaxShift() for x in treshold])
+        ax1.set_ylabel("fold change", color='b')
+        ax1.set_xlabel("genes ordered by fold change(n=" + str(len(treshold)) + ")")
+        ax2 = ax1.twinx()
+        ax2.plot(np.arange(len(treshold)), [x.getPercentOfExpression() for x in treshold], 'ro', markersize=3)
+        ax2.set_ylabel("fraction of expression", color='r')
+        ax2.set_ylim([0.2, 0.65])
+        fig.tight_layout()
+        plt.title("Relation between the fold change and the relative expression\n"
+                  " (fold change >= 1.3, relative fraction >= 20%)")
+        plt.savefig("data\\fold_vs_percent_expression.png")
         plt.show()
 
 

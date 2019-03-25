@@ -6,10 +6,12 @@ import time
 from Graphics import Graphics
 import scipy.stats as stats
 # from fpdf import FPDF
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
 #run parameters
-PERCENT_OF_SHIFT = 1.3
+PERCENT_OF_SHIFT = 1
 PERCENT_OF_READS_HIST = 0.5
 RATIO_TRESHOLD = 0.2
 #updated during the run:
@@ -46,6 +48,9 @@ def readTheFile(path):
             continue
         start = int(columns[2])
         end = int(columns[3])
+        if abs(end - start) > 500:
+            line = file.readline()
+            continue
         strand = columns[4]
         data.append(Gene(name, reads, np.array([start, end]).astype(np.int), strand, chrm))
         line = file.readline()
@@ -148,6 +153,7 @@ def findShifts(alternatives):
     for item in alternatives:
         isShifted = False
         maxShift = 0.0
+        percent_expr = 0.0
         # counter = 0
         what = ""
         p_value = 0
@@ -177,6 +183,7 @@ def findShifts(alternatives):
                             and (abs(int(item.getCoordinates()[row][1]) - int(item.getCoordinates()[row][0])) <= 500):
                             # and counter not in item.getNonAnnotated() \
                         if (mean1 / mean2) > maxShift:
+                            percent_expr = np.max([mean1, mean2])
                             maxShift = (mean1 / mean2)
                             transcript = row
                             p_value = p
@@ -189,6 +196,7 @@ def findShifts(alternatives):
             item.setNumTranscript(transcript + 1)
             item.setWhatDiffers(what)
             item.setPValue(p_value)
+            item.setPercentOfExpression(percent_expr)
     return shifted
 
 
@@ -221,6 +229,27 @@ def readAnnotation(path):
             data[name] = np.array([[start, end, cds_start, cds_end]])
     # return list(sorted(data, key=lambda x: x.getName()))
     return data
+
+
+def calculateDistancesMatrix(data):
+    data = np.transpose(data)
+    distance = np.zeros((data.shape[0], data.shape[0]))
+    ys = ["Acute", "Challenge", "Chronic"]
+    plt.yticks([0, 1, 2], ys)
+    for i in range(data.shape[0]):
+        for j in range(data.shape[0]):
+            distance[i, j] = np.linalg.norm(np.power((data[i] - data[j]), 2))
+    distance += (1 - np.max(distance))
+    ax = sns.heatmap(np.transpose(distance), vmin=0.0, vmax=1.0, yticklabels=names, xticklabels=names)
+    plt.yticks(rotation=0)
+    plt.xticks(rotation=90)
+    plt.axes(ax)
+    plt.show()
+    # plt.imshow(distance * 256, cmap='rainbow')
+    # plt.show()
+
+
+
 
 
 def findAnnotatedShifts(shifted, annotation):
@@ -317,6 +346,45 @@ def main():
     output_filename = sys.argv[3]
     print("Reading the file...")
     fromFile = readTheFile(path)
+    # x = []
+    # y = []
+    # z = []
+    # for gene in fromFile:
+    #     if np.mean(gene.getSamples()[0]) < 5000 and np.mean(gene.getSamples()[10]) < 5000\
+    #             and np.mean(gene.getSamples()[20]) < 5000:
+    #         x.append(np.mean(gene.getSamples()[:8]))
+    #         y.append(np.mean(gene.getSamples()[8:16]))
+    #         z.append(np.mean(gene.getSamples()[16:]))
+    # linreg = stats.linregress(x, y)
+    # print(linreg[0])
+    # plt.plot([0, 5000], [0, linreg[0] * 5000 + linreg[1]], color='c', label='y = ' + str('{0:.3f}'.format(linreg[0]))
+    #                                                                         + "x + " + str('{0:.3f}'.format(linreg[1])))
+    # plt.legend()
+    # plt.scatter(x, y)
+    # plt.xlabel("Acute")
+    # plt.ylabel("Challenge")
+    # plt.title("Acute vs Challenge\n mean of reads")
+    # plt.show()
+    # linreg = stats.linregress(x, z)
+    # print(linreg[0])
+    # plt.plot([0, 5000], [0, linreg[0] * 5000 + linreg[1]], color='m', label='y = ' + str('{0:.3f}'.format(linreg[0]))
+    #                                                                         + "x + " + str('{0:.3f}'.format(linreg[1])))
+    # plt.scatter(x, z)
+    # plt.legend()
+    # plt.xlabel("Acute")
+    # plt.ylabel("Chronic")
+    # plt.title("Acute vs Chronic\n mean of reads")
+    # plt.show()
+    # linreg = stats.linregress(z, y)
+    # print(linreg[0])
+    # plt.plot([0, 5000], [0, linreg[0] * 5000 + linreg[1]], color='m', label='y = ' + str('{0:.3f}'.format(linreg[0]))
+    #                                                                         + "x + " + str('{0:.3f}'.format(linreg[1])))
+    # plt.scatter(z, y)
+    # plt.legend()
+    # plt.xlabel("Chronic")
+    # plt.ylabel("Challenge")
+    # plt.title("Chronic vs Challenge\n mean of reads")
+    # plt.show()
 
     # data = []
     # for item in fromFile:
@@ -333,8 +401,11 @@ def main():
         print("No alternatives, check the given arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
-
-    # data = []
+    data = fracs[0].getSamples()
+    for frac in fracs[1:]:
+        data = np.vstack((data, frac.getSamples()))
+    # calculateDistancesMatrix(data)
+    # print(len(fracs))
     # for item in fracs:
     #     samples = item.getSamples()
     #     for row in samples:
@@ -345,23 +416,26 @@ def main():
     print("Checks the annotations...")
     cur = time.time()
     findAnnotatedShifts(fracs, annotations)
+    print(len(fracs))
     print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
-    print(NOT_ANNOTATED)
+    # print(NOT_ANNOTATED)
     # showFracsScatered(fracs)
     shifts = findShifts(fracs)
+    # grph.fold_change_and_percent(shifts)
+    topdf2 = grph.scatterPvalFold(shifts)
     # showMaxShifts(shifts, num_to_show=500, show_above=1.5, show_coordinates=True)
     # showFracsScatered(shifts)
     # findAnnotatedShifts(shifts, annotations)
     # shifts = removeNotAnnotated(shifts)
     print("Writing the output...")
-    grph.dataToHeatMap(shifts, names)
+    grph.dataToHeatMap(topdf2, names)
     writeShifted(shifts, path, output_filename)
     data = []
     for item in shifts:
         for row in item.getSamples():
             data.append((row - np.mean(row)) / np.std(row))
     pca = PCAVisual(data, SAMPLES_PARTS)
-    pca.show(path)
+    # pca.show(path)
 
 
 
@@ -374,6 +448,27 @@ if __name__ == "__main__":
     # pdf.output("test.pdf")
     # while True:
     #     continue
+    # acute = [0.092, 0.0469, 0.0843, 0.0451, 0.0603, 0.125, 0.0763, 0.0769]
+    # challenge = [0.394, 0.375, 0.328, 0.0571, 0.225, 0.2, 0.158, 0.0755]
+    # chronic = [0.182, 0.144, 0.151, 0.106, 0.24, 0.115, 0.156, 0.0642]
+    # acute = [0.233, 0.145, 0.517, 0.369, 0.246, 0.0864, 0.05, 0.323]
+    # challenge = [0.233, 0.182, 0.646, 0.382, 0.315, 0.286, 0.476, 0.0625, 0.24, 0.396, 0.375, 0.325, 0.211, 0.28, 0.25, 0.157]
+    # chronic = [0.0423, 0.0909, 0.392, 0.134, 0.198, 0.121, 0.0845, 0.118]
+    # x_pos = np.arange(3)
+    # CTEs = [np.mean(acute), np.mean(chronic), np.mean(challenge)]
+    # error = [np.std(acute), np.std(chronic), np.std(challenge)]
+    # # error = [acute, challenge, chronic]
+    # fig, ax = plt.subplots()
+    # ax.bar(x_pos, CTEs, align='center', alpha=0.5, ecolor='black', capsize=10)
+    # ax.set_xticks(x_pos)
+    # ax.set_xticklabels(['Acute', 'Chronic', 'Challenge'])
+    # ax.set_ylabel("Fraction (relative ratio) of the transcript")
+    # plt.title("Egr2 in Amg transcript #1")
+    # plt.plot([0, 0, 0, 0, 0, 0, 0, 0], acute, 'ko')
+    # plt.plot([1, 1, 1, 1, 1, 1, 1, 1], chronic, 'ko')
+    # plt.plot([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], challenge, 'ko')
+    # # ax.yaxis.
+    # plt.show()
     main()
 
 
