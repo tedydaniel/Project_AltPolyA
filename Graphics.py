@@ -59,6 +59,20 @@ class Graphics:
         pdf.output("all_hours_str_above20percent_all_annotated_and_significant.pdf", "F")
 
 
+    def histPValue(self, shifts):
+        shifts.sort(key=lambda x: x.getPValue())
+        forhist = []
+        for gene in shifts:
+            if not gene.getNonAnnotated():
+                p = gene.getPValue()
+                forhist.append(-np.log10(p))
+        plt.hist(forhist, bins=100, cumulative=True)
+        plt.xlabel('-log10(p-value)')
+        plt.ylabel('number of genes')
+        plt.title("Cumulative histogram of -log10(p-value) of the annotated genes(n=" + str(len(forhist)) + ")")
+        plt.show()
+
+
     def scatterPvalFold(self, shifts):
         shifts.sort(key=lambda x: x.getPValue())
         forhist = []
@@ -72,9 +86,6 @@ class Graphics:
                 p = gene.getPValue()
                 forhist.append(-np.log10(p))
                 maxshift.append(gene.getMaxShift())
-        # plt.hist(forhist, bins=100)
-        # # plt.plot(maxshift)
-        # plt.show()
         bluex = []
         bluey = []
         redx = []
@@ -85,7 +96,6 @@ class Graphics:
         for i in range(len(forhist)):
             file2.write(togoterm[i] + "\n")
             if maxshift[i] < np.exp(-15 * (forhist[i] - 2)) + 1.3:
-            # if ((forhist[i] - 4.5) ** 2) / 3 + (maxshift[i] - 3.5) ** 2 > 5:
                 bluex.append(forhist[i])
                 bluey.append(maxshift[i])
             else:
@@ -156,12 +166,12 @@ class Graphics:
         ax1.set_ylabel("fold change", color='b')
         ax1.set_xlabel("genes ordered by fold change(n=" + str(len(treshold)) + ")")
         ax2 = ax1.twinx()
-        ax2.plot(np.arange(len(treshold)), [x.getPercentOfExpression() for x in treshold], 'ro', markersize=3)
-        ax2.set_ylabel("fraction of expression", color='r')
-        ax2.set_ylim([0.2, 0.65])
+        ax2.plot(np.arange(len(treshold)), [x.getPValue() for x in treshold], 'ro', markersize=3)
+        ax2.set_ylabel("p-value", color='r')
+        ax2.set_ylim([0.0, 0.1])
         fig.tight_layout()
-        plt.title("Relation between the fold change and the relative expression\n"
-                  " (fold change >= 1.3, relative fraction >= 20%)")
+        plt.title("Relation between the fold change and the p-value\n"
+                  " (fold change >= 1.3)")
         plt.savefig("data\\fold_vs_percent_expression.png")
         plt.show()
 
