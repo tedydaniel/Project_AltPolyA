@@ -7,6 +7,7 @@ from Graphics import Graphics
 import scipy.stats as stats
 # from fpdf import FPDF
 import matplotlib.pyplot as plt
+from statsmodels.stats.multitest import fdrcorrection as fdr
 import seaborn as sns
 
 
@@ -290,6 +291,18 @@ def findAnnotatedShifts(shifted, annotation):
         # print(NOT_ANNOTATED)
 
 
+def correctFDR(data):
+    data.sort(key= lambda x: x.getPValue())
+    pvals = [x.getPValue() for x in data]
+    after_fdr = fdr(pvals, 0.05)
+    for i in range(len(after_fdr[1])):
+        data[i].setPValue(after_fdr[1][i])
+    return data
+
+
+
+
+
 def writeShifted(shifted, path, name):
     counter = 0
     for item in shifted:
@@ -373,15 +386,18 @@ def main():
     # print(NOT_ANNOTATED)
     # showFracsScatered(fracs)
     shifts = findShifts(fracs)
+    shifts = correctFDR(shifts)
+    grph.histPValue(shifts)
+
     # grph.fold_change_and_percent(shifts)
-    # topdf2 = grph.scatterPvalFold(shifts)
+    topdf2 = grph.scatterPvalFold(shifts)
     grph.fold_change_and_percent(shifts)
     # showMaxShifts(shifts, num_to_show=500, show_above=1.5, show_coordinates=True)
     # showFracsScatered(shifts)
     # findAnnotatedShifts(shifts, annotations)
     # shifts = removeNotAnnotated(shifts)
     print("Writing the output...")
-    # grph.dataToHeatMap(topdf2, names)
+    grph.dataToHeatMap(topdf2, names)
     writeShifted(shifts, path, output_filename)
     data = []
     for item in shifts:
