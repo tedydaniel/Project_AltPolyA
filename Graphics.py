@@ -47,16 +47,17 @@ class Graphics:
                       + "\n transcript = " + str(gene.getNumTranscript()) + " , " + gene.getWhatDiffers()
                       + " , p_value = " + str('{0:.5f}'.format(gene.getPValue())))
             plt.yticks(rotation=0)
-            plt.savefig("data\\heat_maps\\" + gene.getName() + ".png", dpi=65)
+            plt.savefig("data/heat_maps/" + gene.getName() + ".png", dpi=65)
+            print("data/heat_maps/" + gene.getName() + ".png")
 
-            pdf.image("data\\heat_maps\\" + gene.getName() + ".png")
+            pdf.image("data/heat_maps/" + gene.getName() + ".png")
             # pdf.
             # os.remove("data\\heat_maps\\" + gene.getName() + ".png")
             plt.close()
             print(str(counter) + " out of " + str(total))
             counter += 1
         # file.close()
-        pdf.output("all_hours_str_above20percent_all_annotated_and_significant.pdf", "F")
+        pdf.output("all_hours_amg_above20percent_all_annotated_and_significant.pdf", "F")
 
 
     def histPValue(self, shifts):
@@ -65,11 +66,11 @@ class Graphics:
         for gene in shifts:
             if not gene.getNonAnnotated():
                 p = gene.getPValue()
-                forhist.append(-np.log10(p))
-        plt.hist(forhist, bins=100, cumulative=True)
-        plt.xlabel('-log10(p-value)')
+                forhist.append(p)
+        plt.hist(forhist, bins=100)
+        plt.xlabel('p-value')
         plt.ylabel('number of genes')
-        plt.title("Cumulative histogram of -log10(p-value) of the annotated genes(n=" + str(len(forhist)) + ")")
+        plt.title("Cumulative histogram of p-value of the annotated genes(n=" + str(len(forhist)) + ")")
         plt.show()
 
 
@@ -95,7 +96,8 @@ class Graphics:
         file2 = open("all.txt", 'w')
         for i in range(len(forhist)):
             file2.write(togoterm[i] + "\n")
-            if maxshift[i] < np.exp(-15 * (forhist[i] - 2)) + 1.3:
+            if maxshift[i] < 1.3 or forhist[i] < 1.3:
+            # if maxshift[i] < np.exp(-15 * (forhist[i] - 1.3)) + 1.3:
                 bluex.append(forhist[i])
                 bluey.append(maxshift[i])
             else:
@@ -106,13 +108,13 @@ class Graphics:
         file1.close()
         file2.close()
         t = np.arange(0.0, 4.5, 0.1)
-        s = [np.exp(-15 * (x - 2)) + 1.3 for x in t]
+        s = [np.exp(-15 * (x - 1.3)) + 1.3 for x in t]
         plt.plot(t, s, linestyle='dashed')
         plt.ylim([0, 3])
         print(len(bluex), len(bluey), len(redx), len(redy))
         plt.scatter(bluex, bluey, color='b', label="Low fold change and high p-value")
         plt.scatter(redx, redy, color='r', label="High fold change and low p-value")
-        plt.xlabel("-log(p-value)")
+        plt.xlabel("-log10(p-value)")
         plt.ylabel("fold change")
         plt.title("Scatter plot of p-value (Kruskal Wallis) vs Fold change")
         plt.legend(loc='upper left')
