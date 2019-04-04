@@ -1,5 +1,4 @@
 import numpy as np
-from Gene import Gene
 import matplotlib.pyplot as plt
 import seaborn as sns
 from fpdf import FPDF
@@ -180,7 +179,14 @@ class Graphics:
         plt.show()
         
     
-    def fold_change_and_percent(self, shifted):
+    def fold_change_and_pvalue(self, shifted, min_shift = 1.3):
+        """
+        Shows plot with 2 y-axes for annotated genes only. The left y axis represents
+        the values of the maximal shift. The right y-axis represents the value of the p-value
+        for the same gene. The genes on the x-axis sorted by their max shift.
+        :param shifted: list of the genes
+        :return:
+        """
         tograph = []
         for gene in shifted:
             if not gene.getNonAnnotated():
@@ -188,42 +194,17 @@ class Graphics:
         tograph.sort(key= lambda x: x.getMaxShift())
         tograph.reverse()
         fig, ax1 = plt.subplots()
-        treshold = [x for x in tograph if x.getMaxShift() >= 1.3]
+        treshold = [x for x in tograph if x.getMaxShift() >= min_shift]
         ax1.plot(np.arange(len(treshold)), [x.getMaxShift() for x in treshold])
         ax1.set_ylabel("fold change", color='b')
         ax1.set_xlabel("genes ordered by fold change(n=" + str(len(treshold)) + ")")
         ax2 = ax1.twinx()
         ax2.plot(np.arange(len(treshold)), [x.getPValue() for x in treshold], 'ro', markersize=3)
         ax2.set_ylabel("p-value", color='r')
-        # ax2.set_ylim([0.0, 0.1])
         fig.tight_layout()
         plt.title("Relation between the fold change and the p-value\n"
-                  " (fold change >= 1.3)")
-        plt.savefig("data\\fold_vs_percent_expression.png")
-        plt.show()
-
-    def oldAndNewScatter(self, genes):
-        x = []
-        y = []
-        for gene in genes:
-            x.append(gene.getSamples()[0])
-            y.append(gene.getSamples()[1])
-        plt.scatter(x,y)
-        plt.xlabel("new sequencing")
-        plt.ylabel("old sequencing")
-        plt.title("New vs Old sequencing reads")
-        plt.show()
-
-    def acuteAndChronicScatter(self, genes):
-        x = []
-        y = []
-        for gene in genes:
-            x.append(gene.getSamples()[0])
-            y.append(gene.getSamples()[1])
-        plt.scatter(x,y, c='red')
-        plt.xlabel("acute")
-        plt.ylabel("chronic")
-        plt.title("Acute vs Chronic 0h experiment")
+                  " (fold change >= " + str(min_shift) + ")")
+        plt.savefig("data\\fold_vs_pvalue.png")
         plt.show()
 
     def bars_plot(self, gene, segments):

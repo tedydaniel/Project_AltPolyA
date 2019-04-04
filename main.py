@@ -292,7 +292,13 @@ def findAnnotatedShifts(shifted, annotation):
         # print(NOT_ANNOTATED)
 
 
-def correctFDR(data):
+def correct_fdr(data):
+    """
+    After receiving the p-values for the test we should correct the multiple comparisons error.
+    Here we using the FDR method.
+    :param data: The list of genes for correction
+    :return: list with the updated p-values
+    """
     data.sort(key= lambda x: x.getPValue())
     pvals = [x.getPValue() for x in data]
     after_fdr = fdr(pvals, 0.05)
@@ -341,15 +347,6 @@ def writeShifted(shifted, path, name):
         file.write('\n')
     file.close()
 
-
-    # def removeNotAnnotated(shifted):
-    #     shifts = []
-    #     for gene in shifted:
-    #         if gene.getName() in NOT_ANNOTATED:
-
-
-
-
 def main():
     global SAMPLES_PARTS
     SAMPLES_PARTS[0] = int(input("Number of samples of the first experiment: "))
@@ -364,154 +361,32 @@ def main():
     if len(alternatives) > 0:
         print("Found alternatives...")
     else:
-        print("No alternatives, check the given arguments")
+        print("No alternatives, check the arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
     data = fracs[0].getSamples()
     for frac in fracs[1:]:
         data = np.vstack((data, frac.getSamples()))
-    # calculateDistancesMatrix(data)
-    # print(len(fracs))
-    # for item in fracs:
-    #     samples = item.getSamples()
-    #     for row in samples:
-    #         data.append((row - np.mean(row)) / np.std(row))
-    # pca = PCAVisual(data, SAMPLES_PARTS)
-    # pca.show(path)
     annotations = readAnnotation(anotation_path)
     print("Checks the annotations...")
-    cur = time.time()
     findAnnotatedShifts(fracs, annotations)
-    print(len(fracs))
-    print("Time took to check the annotations: " + str((time.time() - cur)) + " seconds")
-    # print(NOT_ANNOTATED)
-    # showFracsScatered(fracs)
     shifts = findShifts(fracs)
-    shifts = correctFDR(shifts)
-    grph.histPValue(shifts)
-
-    # grph.fold_change_and_percent(shifts)
-    topdf2 = grph.scatterPvalFold(shifts)
-    grph.fold_change_and_percent(shifts)
-    # showMaxShifts(shifts, num_to_show=500, show_above=1.5, show_coordinates=True)
-    # showFracsScatered(shifts)
-    # findAnnotatedShifts(shifts, annotations)
-    # shifts = removeNotAnnotated(shifts)
+    shifts = correct_fdr(shifts)
+    grph.hist_of_pvalue(shifts)
+    topdf2 = grph.scatter_pval_to_fold(shifts)
+    grph.fold_change_and_pvalue(shifts)
     print("Writing the output...")
-    grph.dataToHeatMap(topdf2, names)
+    grph.data_to_heat_map(topdf2, names)
     writeShifted(shifts, path, output_filename)
     data = []
     for item in shifts:
         for row in item.getSamples():
             data.append((row - np.mean(row)) / np.std(row))
     pca = PCAVisual(data, SAMPLES_PARTS)
-    # pca.show(path)
-
-
+    pca.show(path)
 
 if __name__ == "__main__":
-    # mydict = dict()
-    # file1 = open("interesting01.txt", 'r')
-    # file2 = open("interesting01amg.txt", 'r')
-    # file3 = open("interesting01lh.txt", 'r')
-    # file4 = open("interesting01nac.txt", 'r')
-    # file5 = open("interesting01pfc.txt", 'r')
-    # line = file1.readline()
-    # while line != "":
-    #     if line in mydict.keys():
-    #         mydict[line] += 1
-    #     else:
-    #         mydict[line] = 1
-    #     line = file1.readline()
-    # line = file2.readline()
-    # while line != "":
-    #     if line in mydict.keys():
-    #         mydict[line] += 1
-    #     else:
-    #         mydict[line] = 1
-    #     line = file2.readline()
-    # line = file3.readline()
-    # while line != "":
-    #     if line in mydict.keys():
-    #         mydict[line] += 1
-    #     else:
-    #         mydict[line] = 1
-    #     line = file3.readline()
-    # line = file4.readline()
-    # while line != "":
-    #     if line in mydict.keys():
-    #         mydict[line] += 1
-    #     else:
-    #         mydict[line] = 1
-    #     line = file4.readline()
-    # line = file5.readline()
-    # while line != "":
-    #     if line in mydict.keys():
-    #         mydict[line] += 1
-    #     else:
-    #         mydict[line] = 1
-    #     line = file5.readline()
-    # print(mydict)
-    # while True:
-    #     continue
-    # pdf = FPDF()
-    # pdf.add_page()
-    # pdf.set_text_color(255,255,255)
-    # pdf.set_font('Arial', '', 12)
-    # pdf.write(1, 'hi')
-    # pdf.output("test.pdf")
-    # while True:
-    #     continue
     main()
-
-
-
-    # x = []
-    # y = []
-    # z = []
-    # for gene in fromFile:
-    #     if np.mean(gene.getSamples()[0]) < 5000 and np.mean(gene.getSamples()[10]) < 5000\
-    #             and np.mean(gene.getSamples()[20]) < 5000:
-    #         x.append(np.mean(gene.getSamples()[:8]))
-    #         y.append(np.mean(gene.getSamples()[8:16]))
-    #         z.append(np.mean(gene.getSamples()[16:]))
-    # linreg = stats.linregress(x, y)
-    # print(linreg[0])
-    # plt.plot([0, 5000], [0, linreg[0] * 5000 + linreg[1]], color='c', label='y = ' + str('{0:.3f}'.format(linreg[0]))
-    #                                                                         + "x + " + str('{0:.3f}'.format(linreg[1])))
-    # plt.legend()
-    # plt.scatter(x, y)
-    # plt.xlabel("Acute")
-    # plt.ylabel("Challenge")
-    # plt.title("Acute vs Challenge\n mean of reads")
-    # plt.show()
-    # linreg = stats.linregress(x, z)
-    # print(linreg[0])
-    # plt.plot([0, 5000], [0, linreg[0] * 5000 + linreg[1]], color='m', label='y = ' + str('{0:.3f}'.format(linreg[0]))
-    #                                                                         + "x + " + str('{0:.3f}'.format(linreg[1])))
-    # plt.scatter(x, z)
-    # plt.legend()
-    # plt.xlabel("Acute")
-    # plt.ylabel("Chronic")
-    # plt.title("Acute vs Chronic\n mean of reads")
-    # plt.show()
-    # linreg = stats.linregress(z, y)
-    # print(linreg[0])
-    # plt.plot([0, 5000], [0, linreg[0] * 5000 + linreg[1]], color='m', label='y = ' + str('{0:.3f}'.format(linreg[0]))
-    #                                                                         + "x + " + str('{0:.3f}'.format(linreg[1])))
-    # plt.scatter(z, y)
-    # plt.legend()
-    # plt.xlabel("Chronic")
-    # plt.ylabel("Challenge")
-    # plt.title("Chronic vs Challenge\n mean of reads")
-    # plt.show()
-
-    # data = []
-    # for item in fromFile:
-    #     row = item.getSamples()
-    #     data.append((row - np.mean(row)) / np.std(row))
-    # pca = PCAVisual(data, SAMPLES_PARTS)
-    # pca.show(path)
 
 
 
