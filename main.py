@@ -11,6 +11,7 @@ from statsmodels.stats.multitest import fdrcorrection as fdr
 import seaborn as sns
 
 
+
 #run parameters
 PERCENT_OF_SHIFT = 1
 PERCENT_OF_READS_HIST = 0.5
@@ -409,6 +410,50 @@ def main():
 
 
 if __name__ == "__main__":
+    # mydict = dict()
+    # file1 = open("interesting01.txt", 'r')
+    # file2 = open("interesting01amg.txt", 'r')
+    # file3 = open("interesting01lh.txt", 'r')
+    # file4 = open("interesting01nac.txt", 'r')
+    # file5 = open("interesting01pfc.txt", 'r')
+    # line = file1.readline()
+    # while line != "":
+    #     if line in mydict.keys():
+    #         mydict[line] += 1
+    #     else:
+    #         mydict[line] = 1
+    #     line = file1.readline()
+    # line = file2.readline()
+    # while line != "":
+    #     if line in mydict.keys():
+    #         mydict[line] += 1
+    #     else:
+    #         mydict[line] = 1
+    #     line = file2.readline()
+    # line = file3.readline()
+    # while line != "":
+    #     if line in mydict.keys():
+    #         mydict[line] += 1
+    #     else:
+    #         mydict[line] = 1
+    #     line = file3.readline()
+    # line = file4.readline()
+    # while line != "":
+    #     if line in mydict.keys():
+    #         mydict[line] += 1
+    #     else:
+    #         mydict[line] = 1
+    #     line = file4.readline()
+    # line = file5.readline()
+    # while line != "":
+    #     if line in mydict.keys():
+    #         mydict[line] += 1
+    #     else:
+    #         mydict[line] = 1
+    #     line = file5.readline()
+    # print(mydict)
+    # while True:
+    #     continue
     # pdf = FPDF()
     # pdf.add_page()
     # pdf.set_text_color(255,255,255)
@@ -417,27 +462,6 @@ if __name__ == "__main__":
     # pdf.output("test.pdf")
     # while True:
     #     continue
-    # acute = [0.092, 0.0469, 0.0843, 0.0451, 0.0603, 0.125, 0.0763, 0.0769]
-    # challenge = [0.394, 0.375, 0.328, 0.0571, 0.225, 0.2, 0.158, 0.0755]
-    # chronic = [0.182, 0.144, 0.151, 0.106, 0.24, 0.115, 0.156, 0.0642]
-    # acute = [0.233, 0.145, 0.517, 0.369, 0.246, 0.0864, 0.05, 0.323]
-    # challenge = [0.233, 0.182, 0.646, 0.382, 0.315, 0.286, 0.476, 0.0625, 0.24, 0.396, 0.375, 0.325, 0.211, 0.28, 0.25, 0.157]
-    # chronic = [0.0423, 0.0909, 0.392, 0.134, 0.198, 0.121, 0.0845, 0.118]
-    # x_pos = np.arange(3)
-    # CTEs = [np.mean(acute), np.mean(chronic), np.mean(challenge)]
-    # error = [np.std(acute), np.std(chronic), np.std(challenge)]
-    # # error = [acute, challenge, chronic]
-    # fig, ax = plt.subplots()
-    # ax.bar(x_pos, CTEs, align='center', alpha=0.5, ecolor='black', capsize=10)
-    # ax.set_xticks(x_pos)
-    # ax.set_xticklabels(['Acute', 'Chronic', 'Challenge'])
-    # ax.set_ylabel("Fraction (relative ratio) of the transcript")
-    # plt.title("Egr2 in Amg transcript #1")
-    # plt.plot([0, 0, 0, 0, 0, 0, 0, 0], acute, 'ko')
-    # plt.plot([1, 1, 1, 1, 1, 1, 1, 1], chronic, 'ko')
-    # plt.plot([2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], challenge, 'ko')
-    # # ax.yaxis.
-    # plt.show()
     main()
 
 

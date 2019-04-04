@@ -3,13 +3,16 @@ from Gene import Gene
 import matplotlib.pyplot as plt
 import seaborn as sns
 from fpdf import FPDF
-import os
 
 
 class Graphics:
 
 
-    def showFracsScatered(self, fracs):
+    def show_fracs_scattered(self, fracs):
+        """
+        :param fracs:
+        :return:
+        """
         M = fracs[0].getSamples()
         for i in range(1, len(fracs)):
             M = np.append(M, fracs[i].getSamples(), axis=0)
@@ -23,7 +26,16 @@ class Graphics:
         plt.show()
 
 
-    def dataToHeatMap(self, shifted, names):
+    def data_to_heat_map(self, shifted, names,
+                         filename = "all_hours_lh_above20percent_all_"
+                                    "annotated_and_significant_with_01_and_15_fold.pdf"):
+        """
+        Creates a heat map of the samples for each gene within the 'shifted' list and outputs it to the pdf file
+        with the name 'filename'. The labels for the samples are taken rom the 'names' list.
+        :param shifted: list of 'Gene' objects.
+        :param names: list with the names of the samples.
+        :return:
+        """
         pdf = FPDF()
         counter = 1
         total = len(shifted)
@@ -32,14 +44,11 @@ class Graphics:
         pdf.set_font('Arial', '', 12)
         shifted.sort(key=lambda x: x.getMaxShift())
         shifted = shifted[::-1]
-        # file = open("all_hours_str_symbols_annotated.txt", 'w')
         for gene in shifted:
-            # if gene.getNumTranscript() in gene.getNonAnnotated():
-            #     continue
-            # file.write(gene.getName() + "\n")
             gene.calculate_lengths()
             ax = sns.heatmap(np.transpose(gene.getSamples()), vmin=0.0, vmax=1.0,
-                             annot=True, fmt=".3g", linewidths=.5, yticklabels=names, xticklabels=gene.getLengths())
+                             annot=True, fmt=".3g", linewidths=.5, yticklabels=names,
+                             xticklabels=gene.getLengths(), cmap='coolwarm')
             plt.axes(ax)
             pdf.write(0, gene.getName() + "\n")
             plt.title(gene.getName() + "\n max_shift = " + str('{0:.3f}'.format(gene.getMaxShift())) + " , max_read = "
@@ -47,34 +56,53 @@ class Graphics:
                       + "\n transcript = " + str(gene.getNumTranscript()) + " , " + gene.getWhatDiffers()
                       + " , p_value = " + str('{0:.5f}'.format(gene.getPValue())))
             plt.yticks(rotation=0)
-            plt.savefig("data/heat_maps/" + gene.getName() + ".png", dpi=65)
-            print("data/heat_maps/" + gene.getName() + ".png")
-
-            pdf.image("data/heat_maps/" + gene.getName() + ".png")
-            # pdf.
-            # os.remove("data\\heat_maps\\" + gene.getName() + ".png")
+            plt.savefig("data\\heat_maps\\" + gene.getName() + ".png", dpi=65)
+            pdf.image("data\\heat_maps\\" + gene.getName() + ".png")
             plt.close()
-            print(str(counter) + " out of " + str(total))
+            print("Writing to PDF " + str(counter) + " out of " + str(total))
             counter += 1
-        # file.close()
-        pdf.output("all_hours_amg_above20percent_all_annotated_and_significant.pdf", "F")
+        pdf.output(filename, "F")
 
-
-    def histPValue(self, shifts):
-        shifts.sort(key=lambda x: x.getPValue())
+    def hist_of_pvalue(self, shifts):
+        """
+        Shows the histogram and the cumulative histogram of teh given genes p-values.
+        :param shifts: list of 'Gene' object.
+        :return: shows two plots, the first one os the histogram of the p-values
+        and the second one is the cumulative histogram of the same p-values.
+        """
         forhist = []
         for gene in shifts:
             if not gene.getNonAnnotated():
                 p = gene.getPValue()
                 forhist.append(p)
-        plt.hist(forhist, bins=100)
+        plt.hist(forhist, bins=150)
+        plt.xlabel('p-value')
+        plt.ylabel('number of genes')
+        plt.title("Histogram of p-value of the annotated genes(n=" + str(len(forhist)) + ")")
+        plt.show()
+        forhist = []
+        for gene in shifts:
+            if not gene.getNonAnnotated():
+                p = gene.getPValue()
+                forhist.append(p)
+        plt.hist(forhist, bins=150, cumulative=True)
         plt.xlabel('p-value')
         plt.ylabel('number of genes')
         plt.title("Cumulative histogram of p-value of the annotated genes(n=" + str(len(forhist)) + ")")
         plt.show()
 
-
-    def scatterPvalFold(self, shifts):
+    def scatter_pval_to_fold(self, shifts, shift=1.5, logpval=1, out=True,
+                        name1="sig_str.txt", name2="all_str.txt"):
+        """
+        :param shifts: list of the genes
+        :param shift: the value of the shift considered significant
+        :param logpval: log10 of pvalue considired significant
+        :param out: if True then output the significant genes symbols to name1 file
+        and all the genes symbols to name2 file.
+        :param name1: file for significant symbols
+        :param name2: file for all the symbols from 'shifts' list
+        :return: list of the significant genes.
+        """
         shifts.sort(key=lambda x: x.getPValue())
         forhist = []
         maxshift = []
@@ -92,38 +120,35 @@ class Graphics:
         redx = []
         redy = []
         topdf2 = []
-        file1 = open("interesting.txt", 'w')
-        file2 = open("all.txt", 'w')
+        if out:
+            file1 = open(name1, 'w')
+            file2 = open(name2, 'w')
         for i in range(len(forhist)):
-            file2.write(togoterm[i] + "\n")
-            if maxshift[i] < 1.3 or forhist[i] < 1.3:
-            # if maxshift[i] < np.exp(-15 * (forhist[i] - 1.3)) + 1.3:
+            if out:
+                file2.write(togoterm[i] + "\n")
+            if maxshift[i] < shift or forhist[i] < logpval:
                 bluex.append(forhist[i])
                 bluey.append(maxshift[i])
             else:
                 topdf2.append(topdf[i])
-                file1.write(togoterm[i] + '\n')
+                if out:
+                    file1.write(togoterm[i] + '\n')
                 redx.append(forhist[i])
                 redy.append(maxshift[i])
-        file1.close()
-        file2.close()
-        t = np.arange(0.0, 4.5, 0.1)
-        s = [np.exp(-15 * (x - 1.3)) + 1.3 for x in t]
-        plt.plot(t, s, linestyle='dashed')
-        plt.ylim([0, 3])
-        print(len(bluex), len(bluey), len(redx), len(redy))
+        if out:
+            file1.close()
+            file2.close()
+        print("Non significant: " + str(len(bluex)) + "\nSignificant: " + str(len(redx)))
         plt.scatter(bluex, bluey, color='b', label="Low fold change and high p-value")
         plt.scatter(redx, redy, color='r', label="High fold change and low p-value")
         plt.xlabel("-log10(p-value)")
         plt.ylabel("fold change")
-        plt.title("Scatter plot of p-value (Kruskal Wallis) vs Fold change")
+        plt.title("Scatter plot of p-value (Kruskal Wallis) vs Fold change (=1.5)")
         plt.legend(loc='upper left')
         plt.show()
         return topdf2
 
-
-    def showMaxShifts(self, shifts, num_to_show=100, show_coordinates=False, show_above=1.0, show_names=False):
-        # global TRESHOLD
+    def show_max_shifts(self, shifts, num_to_show=100, show_coordinates=False, show_above=1.0, show_names=False):
         max_shifts = []
         for shifted in shifts:
             if shifted.getMaxShift() >= show_above:
@@ -138,7 +163,7 @@ class Graphics:
             items.append(shifted[2])
         max_shifts1 = max_shifts1[-num_to_show:]
         genes = genes[-num_to_show:]
-        file = open("maxShifts_" + str(THRESHOLD) + ".txt", 'w')
+        file = open("maxShifts.txt", 'w')
         for item in items:
             file.write(item.getName() + "   " + item.getChromosome() + "    " + str(item.getMaxShift()))
             print(item.getName(), item.getChromosome(), item.getMaxShift())
@@ -170,48 +195,12 @@ class Graphics:
         ax2 = ax1.twinx()
         ax2.plot(np.arange(len(treshold)), [x.getPValue() for x in treshold], 'ro', markersize=3)
         ax2.set_ylabel("p-value", color='r')
-        ax2.set_ylim([0.0, 0.1])
+        # ax2.set_ylim([0.0, 0.1])
         fig.tight_layout()
         plt.title("Relation between the fold change and the p-value\n"
                   " (fold change >= 1.3)")
         plt.savefig("data\\fold_vs_percent_expression.png")
         plt.show()
-
-
-    def readTheFile(self, path):
-        """
-        Reading the file from tha path and returning a list of Gene objects
-         sorted by gene names
-        :param path:
-        :return:
-        """
-        global names
-        file = open(path, 'r')
-        names = file.readline().split()
-        names = [names[0]] + names[5:]
-        line = file.readline()
-        data = []
-        while line != '':
-            columns = line.split()
-            reads = np.array([float(x) for x in columns[5:]])
-            if np.mean(reads) > 1000:
-                line = file.readline()
-                continue
-            name = columns[0]
-            chrm = columns[1]
-            if chrm == "chrM":
-                line = file.readline()
-                continue
-            start = columns[2]
-            end = columns[3]
-            strand = columns[4]
-            # if abs(float(end) - float(start)) > 3000:    #check with Reut, it's not OK
-            #     line = file.readline()
-            #     continue
-            data.append(Gene(name, reads, np.array([start, end]).astype(np.uint64), strand, chrm))
-            line = file.readline()
-        return list(sorted(data, key=lambda x: x.getName()))
-
 
     def oldAndNewScatter(self, genes):
         x = []
@@ -225,8 +214,6 @@ class Graphics:
         plt.title("New vs Old sequencing reads")
         plt.show()
 
-
-
     def acuteAndChronicScatter(self, genes):
         x = []
         y = []
@@ -239,13 +226,28 @@ class Graphics:
         plt.title("Acute vs Chronic 0h experiment")
         plt.show()
 
+    def bars_plot(self, gene, segments):
+        """
+        :param gene: the gene of interest
+        :param segments: list with the number of samples for each experience
+        :return: shows the bar plot of the mean values with the values in form of black dots
+        """
+        acute = gene.getSamples()[gene.getNumTranscript()][:segments[0]]
+        challenge = gene.getSamples()[gene.getNumTranscript()][segments[0]:segments[1]]
+        chronic = gene.getSamples()[gene.getNumTranscript()][segments[1]:]
+        x_pos = np.arange(3)
+        ctes = [np.mean(acute), np.mean(chronic), np.mean(challenge)]
+        fig, ax = plt.subplots()
+        ax.bar(x_pos, ctes, align='center', alpha=0.5, ecolor='black', capsize=10)
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(['Acute', 'Chronic', 'Challenge'])
+        ax.set_ylabel("Fraction (relative ratio) of the transcript")
+        plt.title(gene.getName() + " transcript #" + gene.getNumTranscript())
+        plt.plot([0] * len(acute), acute, 'ko')
+        plt.plot([1] * len(chronic), chronic, 'ko')
+        plt.plot([2] * len(challenge), challenge, 'ko')
+        plt.show()
 
-# path1 = "C:\\Users\\Nudelman\\Desktop\\Files\\Project_CB\\Project_AltPolyA\\data\\str_old_new.window.txt"
-# path2 = "C:\\Users\\Nudelman\\Desktop\\Files\\Project_CB\\Project_AltPolyA\\data\\acute_chronic_str.window.txt"
-# genes1 = Graphics.readTheFile(path1)
-# genes2 = Graphics.readTheFile(path2)
-# Graphics.oldAndNewScatter(genes1)
-# Graphics.acuteAndChronicScatter(genes2)
 
 
 
