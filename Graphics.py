@@ -26,7 +26,7 @@ class Graphics:
 
 
     def data_to_heat_map(self, shifted, names,
-                         filename = "all_hours_lh_above20percent_all_"
+                         filename = "all_hours_nac_above20percent_all_"
                                     "annotated_and_significant_with_01_and_15_fold.pdf"):
         """
         Creates a heat map of the samples for each gene within the 'shifted' list and outputs it to the pdf file
@@ -91,7 +91,7 @@ class Graphics:
         plt.show()
 
     def scatter_pval_to_fold(self, shifts, shift=1.5, logpval=1, out=True,
-                        name1="sig_str.txt", name2="all_str.txt"):
+                        name1="sig_nac.txt", name2="all_nac.txt"):
         """
         :param shifts: list of the genes
         :param shift: the value of the shift considered significant
@@ -213,9 +213,9 @@ class Graphics:
         :param segments: list with the number of samples for each experience
         :return: shows the bar plot of the mean values with the values in form of black dots
         """
-        acute = gene.getSamples()[gene.getNumTranscript()][:segments[0]]
-        challenge = gene.getSamples()[gene.getNumTranscript()][segments[0]:segments[1]]
-        chronic = gene.getSamples()[gene.getNumTranscript()][segments[1]:]
+        acute = gene.getSamples()[gene.getNumTranscript() - 1][:segments[0]]
+        challenge = gene.getSamples()[gene.getNumTranscript() - 1][segments[0]:segments[1]]
+        chronic = gene.getSamples()[gene.getNumTranscript() - 1][segments[1]:]
         x_pos = np.arange(3)
         ctes = [np.mean(acute), np.mean(chronic), np.mean(challenge)]
         fig, ax = plt.subplots()
@@ -223,10 +223,31 @@ class Graphics:
         ax.set_xticks(x_pos)
         ax.set_xticklabels(['Acute', 'Chronic', 'Challenge'])
         ax.set_ylabel("Fraction (relative ratio) of the transcript")
-        plt.title(gene.getName() + " transcript #" + gene.getNumTranscript())
+        plt.title(gene.getName() + " transcript #" + str(gene.getNumTranscript()))
         plt.plot([0] * len(acute), acute, 'ko')
         plt.plot([1] * len(chronic), chronic, 'ko')
         plt.plot([2] * len(challenge), challenge, 'ko')
+        plt.show()
+
+    def calculate_distances_matrix(self, data, names):
+        """
+        Shows the heat map of the distances matrix. The
+        :param data:
+        :param names:
+        :return:
+        """
+        data = np.transpose(data)
+        distance = np.zeros((data.shape[0], data.shape[0]))
+        ys = ["Acute", "Challenge", "Chronic"]
+        plt.yticks([0, 1, 2], ys)
+        for i in range(data.shape[0]):
+            for j in range(data.shape[0]):
+                distance[i, j] = np.linalg.norm(np.power((data[i] - data[j]), 2))
+        distance += (1 - np.max(distance))
+        ax = sns.heatmap(np.transpose(distance), vmin=0.0, vmax=1.0, yticklabels=names, xticklabels=names)
+        plt.yticks(rotation=0)
+        plt.xticks(rotation=90)
+        plt.axes(ax)
         plt.show()
 
 

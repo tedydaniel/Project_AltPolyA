@@ -5,11 +5,8 @@ import sys
 import time
 from Graphics import Graphics
 import scipy.stats as stats
-# from fpdf import FPDF
 import matplotlib.pyplot as plt
 from statsmodels.stats.multitest import fdrcorrection as fdr
-import seaborn as sns
-
 
 
 #run parameters
@@ -35,9 +32,17 @@ def readTheFile(path):
     :return:
     """
     global names
+    global SAMPLES_PARTS
     file = open(path, 'r')
     names = file.readline().split()
     names = names[5:]
+    SAMPLES_PARTS = [0, 0]
+    for name in names:
+        if "Acute" in name:
+            SAMPLES_PARTS[0] += 1
+        elif "Chall" in name:
+            SAMPLES_PARTS[1] += 1
+    SAMPLES_PARTS[1] += SAMPLES_PARTS[0]
     line = file.readline()
     data = []
     while line != '':
@@ -150,13 +155,11 @@ def findShifts(alternatives):
     :return: Filtered list contains only the shifted genes
     """
     shifted = []
-    maxShift = 0
     samples = {0: "Acute", 1:"Challenge", 2:"Chronic"}
     for item in alternatives:
         isShifted = False
         maxShift = 0.0
         percent_expr = 0.0
-        # counter = 0
         what = ""
         p_value = 0
         transcript = 0
@@ -169,12 +172,6 @@ def findShifts(alternatives):
             meanChronic = np.mean(m_samples[row][SAMPLES_PARTS[1]:])
             p = stats.kruskal(m_samples[row][:SAMPLES_PARTS[0]], m_samples[row][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]],
                               m_samples[row][SAMPLES_PARTS[1]:])[1]
-            # meanAmg = np.mean(row[:SAMPLES_PARTS[0]])
-            # meanLH = np.mean(row[SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
-            # meanNAC = np.mean(row[SAMPLES_PARTS[1]:SAMPLES_PARTS[2]])
-            # meanPFC = np.mean(row[SAMPLES_PARTS[2]:SAMPLES_PARTS[3]])
-            # meanSTR = np.mean(row[SAMPLES_PARTS[3]:])
-            # means = [meanAmg, meanLH, meanNAC, meanPFC, meanSTR]
             means = [meanAcute, meanChallenge, meanChronic]
             for i in range(len(means)):
                 mean1 = means[i]
@@ -233,27 +230,6 @@ def readAnnotation(path):
     return data
 
 
-def calculateDistancesMatrix(data):
-    data = np.transpose(data)
-    distance = np.zeros((data.shape[0], data.shape[0]))
-    ys = ["Acute", "Challenge", "Chronic"]
-    plt.yticks([0, 1, 2], ys)
-    for i in range(data.shape[0]):
-        for j in range(data.shape[0]):
-            distance[i, j] = np.linalg.norm(np.power((data[i] - data[j]), 2))
-    distance += (1 - np.max(distance))
-    ax = sns.heatmap(np.transpose(distance), vmin=0.0, vmax=1.0, yticklabels=names, xticklabels=names)
-    plt.yticks(rotation=0)
-    plt.xticks(rotation=90)
-    plt.axes(ax)
-    plt.show()
-    # plt.imshow(distance * 256, cmap='rainbow')
-    # plt.show()
-
-
-
-
-
 def findAnnotatedShifts(shifted, annotation):
     global NOT_ANNOTATED
     for shifted_gene in shifted:
@@ -273,23 +249,6 @@ def findAnnotatedShifts(shifted, annotation):
                 NOT_ANNOTATED.append(shifted_gene.getName())
                 shifted_gene.addNonAnnotated(counter)
             counter += 1
-        # for coordinate in shifted_gene.getCoordinates():
-        #     isAnnotated = False
-        #     for annotated_gene in annotation:
-        #         if shifted_gene.getName() == annotated_gene.getName():
-        #             if shifted_gene.getStrand() == '+' \
-        #                 and annotated_gene.getCoordinates()[1] + PEAK_WINDOW > coordinate[1] \
-        #                 and annotated_gene.getCoordinates()[1] - PEAK_WINDOW < coordinate[1]:
-        #                 isAnnotated = True
-        #             elif shifted_gene.getStrand() == '-' \
-        #                 and annotated_gene.getCoordinates()[0] + PEAK_WINDOW > coordinate[0] \
-        #                 and annotated_gene.getCoordinates()[0] - PEAK_WINDOW < coordinate[0]:
-        #                 isAnnotated = True
-        #     if isAnnotated == False and shifted_gene.getName() not in NOT_ANNOTATED:
-        #         NOT_ANNOTATED.append(shifted_gene.getName())
-        #         shifted_gene.addNonAnnotated(counter)
-        #     counter += 1
-        # print(NOT_ANNOTATED)
 
 
 def correct_fdr(data):
@@ -307,7 +266,20 @@ def correct_fdr(data):
     return data
 
 
-
+def up_down_between_regulation(data):
+    up, down, between = 0,0,0
+    for gene in data:
+        acute = gene.getSamples()[gene.getNumTranscript() - 1][:SAMPLES_PARTS[0]]
+        challenge = gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]]
+        chronic = gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[1]:]
+        ctes = [np.mean(acute), np.mean(chronic), np.mean(challenge)]
+        if ctes[0] > ctes[1] > ctes[2]:
+            down += 1
+        elif ctes[0] < ctes[1] < ctes[2]:
+            up += 1
+        else:
+            between += 1
+    print("Upregulated:" + str(up) + "\nDownregulated:" + str(down) + "\nBetween:" + str(between))
 
 
 def writeShifted(shifted, path, name):
@@ -348,9 +320,6 @@ def writeShifted(shifted, path, name):
     file.close()
 
 def main():
-    global SAMPLES_PARTS
-    SAMPLES_PARTS[0] = int(input("Number of samples of the first experiment: "))
-    SAMPLES_PARTS[1] = SAMPLES_PARTS[0] + int(input("Number of samples of the second experiment: "))
     grph = Graphics()
     path = sys.argv[1]
     anotation_path = sys.argv[2]
@@ -373,7 +342,10 @@ def main():
     shifts = findShifts(fracs)
     shifts = correct_fdr(shifts)
     grph.hist_of_pvalue(shifts)
-    topdf2 = grph.scatter_pval_to_fold(shifts)
+    topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5)
+    for gene in topdf2:
+        if gene.getName() == "Klf13":
+            grph.bars_plot(gene, SAMPLES_PARTS)
     grph.fold_change_and_pvalue(shifts)
     print("Writing the output...")
     grph.data_to_heat_map(topdf2, names)
