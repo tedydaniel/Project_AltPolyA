@@ -7,6 +7,9 @@ from Graphics import Graphics
 import scipy.stats as stats
 import matplotlib.pyplot as plt
 from statsmodels.stats.multitest import fdrcorrection as fdr
+import tkinter as tk
+from os import listdir
+from os.path import isfile, join
 
 
 #run parameters
@@ -19,6 +22,8 @@ NOT_ANNOTATED = []
 #
 SAMPLES_PARTS = [8, 16]
 PEAK_WINDOW = 1000
+DATA_FILE = ""
+ANNOT_FILE=""
 
 
 names = []
@@ -319,13 +324,71 @@ def writeShifted(shifted, path, name):
         file.write('\n')
     file.close()
 
+
+
+def make_gui():
+    top = tk.Tk()
+    leftframe = tk.Frame(top)
+    leftframe.pack(side=tk.LEFT)
+    rightframe = tk.Frame(top)
+    rightframe.pack(side=tk.RIGHT)
+
+    var1 = tk.IntVar()
+    var2 = tk.IntVar()
+    var1.set(0)
+    var2.set(0)
+    radiobuttons = []
+    annot_radiobuts = []
+    onlyfiles = [f for f in listdir("./data") if isfile(join("./data", f))]
+    data_files = []
+    annot_files = []
+    for file in onlyfiles:
+        if file[-4:] == "3end":
+            radiobuttons.append(tk.Radiobutton(leftframe, text=file[:-12], variable=var1, value=len(radiobuttons)))
+            radiobuttons[-1].pack(anchor=tk.W)
+            data_files.append("data/" + file)
+        if file[-5:] == "annot":
+            annot_radiobuts.append(tk.Radiobutton(leftframe, text=file[:-6], variable=var2, value=len(annot_radiobuts)))
+            annot_radiobuts[-1].pack(anchor=tk.W)
+            annot_files.append("data/" + file)
+    def but1():
+        global DATA_FILE
+        global ANNOT_FILE
+        DATA_FILE = data_files[var1.get()]
+        ANNOT_FILE = annot_files[var2.get()]
+        top.destroy()
+    b1 = tk.Button(leftframe, text="Start", command=but1)
+    b1.pack(side=tk.BOTTOM)
+    CheckVar1 = tk.IntVar()
+    CheckVar2 = tk.IntVar()
+    entries = []
+    def c1():
+        if CheckVar2.get() == 1:
+            entries.append(tk.Entry(rightframe, bd=5))
+            entries.append(tk.Label(rightframe, text="Enter full or relative path \nwith the filename: "))
+            entries[1].pack()
+            entries[0].pack(side=tk.BOTTOM)
+        else:
+            entries[0].destroy()
+            entries[1].destroy()
+            entries.pop(0)
+            entries.pop(0)
+    c_pca = tk.Checkbutton(rightframe, text="Show PCA", variable=CheckVar1, onvalue=1, offvalue=0, height=5, width=20)
+    c_to_pdf = tk.Checkbutton(rightframe, text="Export to PDF", variable=CheckVar2, onvalue=1, offvalue=0, height=5, width=20,
+                              command=c1)
+    c_pca.pack()
+    c_to_pdf.pack()
+    top.mainloop()
+
+
 def main():
+    make_gui()
     grph = Graphics()
-    path = sys.argv[1]
-    anotation_path = sys.argv[2]
-    output_filename = sys.argv[3]
+    # path = sys.argv[1]
+    # anotation_path = sys.argv[2]
+    # output_filename = sys.argv[3]
     print("Reading the file...")
-    fromFile = readTheFile(path)
+    fromFile = readTheFile(DATA_FILE)
     alternatives = findAlternatives(fromFile)
     if len(alternatives) > 0:
         print("Found alternatives...")
@@ -334,28 +397,72 @@ def main():
         raise SystemExit
     fracs = calculateFractions(alternatives)
     data = fracs[0].getSamples()
+    symbols = [fracs[0].getName()]
     for frac in fracs[1:]:
         data = np.vstack((data, frac.getSamples()))
-    annotations = readAnnotation(anotation_path)
+        symbols.append(frac.getName())
+    pca = PCAVisual(np.transpose(data), symbols)
+    pca.show(DATA_FILE)
+    annotations = readAnnotation(ANNOT_FILE)
     print("Checks the annotations...")
     findAnnotatedShifts(fracs, annotations)
     shifts = findShifts(fracs)
     shifts = correct_fdr(shifts)
-    grph.hist_of_pvalue(shifts)
+    # grph.hist_of_pvalue(shifts)
     topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5)
+    upreg = []
+    downreg = []
+    updown = []
+    downup = []
     for gene in topdf2:
-        if gene.getName() == "Klf13":
-            grph.bars_plot(gene, SAMPLES_PARTS)
+        gene.calculate_lengths()
+        if abs(gene.getLengths()[gene.getNumTranscript() - 1]) > 10000:
+            continue
+        acute = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][:SAMPLES_PARTS[0]])
+        challenge = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
+        chronic = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[1]:])
+        if acute <= chronic <= challenge:
+            upreg.append(gene.getLengths()[gene.getNumTranscript() - 1])
+        elif acute >= chronic >= challenge:
+            downreg.append(gene.getLengths()[gene.getNumTranscript() - 1])
+        elif acute >= chronic <= challenge:
+            downup.append(gene.getLengths()[gene.getNumTranscript() - 1])
+        else:
+            updown.append(gene.getLengths()[gene.getNumTranscript() - 1])
+
+    x_pos = np.arange(4)
+    ctes = [np.mean(upreg), np.mean(downreg), np.mean(updown), np.mean(downup)]
+    std_downreg = 0
+    if downreg:
+        std_downreg = np.std(downreg)
+    fig, ax = plt.subplots()
+    ax.bar(x_pos, ctes, align='center', alpha=0.5, ecolor='black', capsize=10)
+    ax.set_xticks(x_pos)
+    ax.set_xticklabels(['Upreg', 'Downreg', 'Updown', 'Downup'])
+    ax.set_ylabel("Tail relative length")
+    plt.title("Variance of the tail lengths\ns.d. " + str(int(np.std(upreg))) +
+              " , " + str(int(std_downreg)) + " , " + str(int(np.std(updown))) +
+              " , " + str(int(np.std(downup))))
+    plt.plot([0] * len(upreg), upreg, 'ko')
+    plt.plot([1] * len(downreg), downreg, 'ko')
+    plt.plot([2] * len(updown), updown, 'ko')
+    plt.plot([3] * len(downup), downup, 'ko')
+    plt.show()
+    # while(True):
+    #     continue
+        # if gene.getName() == "Klf13":
+            # grph.bars_plot(gene, SAMPLES_PARTS)
     grph.fold_change_and_pvalue(shifts)
     print("Writing the output...")
     grph.data_to_heat_map(topdf2, names)
-    writeShifted(shifts, path, output_filename)
-    data = []
-    for item in shifts:
-        for row in item.getSamples():
-            data.append((row - np.mean(row)) / np.std(row))
-    pca = PCAVisual(data, SAMPLES_PARTS)
-    pca.show(path)
+    # writeShifted(shifts, path, output_filename)
+    data = topdf2[0].getSamples()
+    symbols = [topdf2[0].getName()]
+    for frac in topdf2[1:]:
+        data = np.vstack((data, frac.getSamples()))
+        symbols.append(frac.getName())
+    pca = PCAVisual(np.transpose(data), symbols)
+    pca.show(DATA_FILE)
 
 if __name__ == "__main__":
     main()

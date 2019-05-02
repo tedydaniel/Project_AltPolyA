@@ -26,7 +26,7 @@ class Graphics:
 
 
     def data_to_heat_map(self, shifted, names,
-                         filename = "all_hours_nac_above20percent_all_"
+                         filename = "all_hours_amg_above20percent_all_"
                                     "annotated_and_significant_with_01_and_15_fold.pdf"):
         """
         Creates a heat map of the samples for each gene within the 'shifted' list and outputs it to the pdf file
