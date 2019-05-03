@@ -396,14 +396,17 @@ def main():
         print("No alternatives, check the arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
-    data = fracs[0].getSamples()
-    symbols = [fracs[0].getName()]
-    for frac in fracs[1:]:
-        data = np.vstack((data, frac.getSamples()))
-        symbols.append(frac.getName())
-    pca = PCAVisual(np.transpose(data), symbols)
-    pca.show(DATA_FILE)
+    # data = fracs[0].getSamples()
+    # symbols = [fracs[0].getName()]
+    # for frac in fracs[1:]:
+    #     data = np.vstack((data, frac.getSamples()))
+    #     symbols.append(frac.getName())
+    # pca = PCAVisual(np.transpose(data), symbols)
+    # pca.show(DATA_FILE)
     annotations = readAnnotation(ANNOT_FILE)
+    for gene in fracs:
+        gene.setCDS(annotations[gene.getName()][2:])
+    print(fracs[0].m_cds)
     print("Checks the annotations...")
     findAnnotatedShifts(fracs, annotations)
     shifts = findShifts(fracs)
@@ -456,13 +459,13 @@ def main():
     print("Writing the output...")
     grph.data_to_heat_map(topdf2, names)
     # writeShifted(shifts, path, output_filename)
-    data = topdf2[0].getSamples()
-    symbols = [topdf2[0].getName()]
-    for frac in topdf2[1:]:
-        data = np.vstack((data, frac.getSamples()))
-        symbols.append(frac.getName())
-    pca = PCAVisual(np.transpose(data), symbols)
-    pca.show(DATA_FILE)
+    # data = topdf2[0].getSamples()
+    # symbols = [topdf2[0].getName()]
+    # for frac in topdf2[1:]:
+    #     data = np.vstack((data, frac.getSamples()))
+    #     symbols.append(frac.getName())
+    # pca = PCAVisual(np.transpose(data), symbols)
+    # pca.show(DATA_FILE)
 
 if __name__ == "__main__":
     main()
