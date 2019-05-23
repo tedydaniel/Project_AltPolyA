@@ -382,6 +382,29 @@ def make_gui():
 
 
 def main():
+    SMALL_SIZE = 14
+    MEDIUM_SIZE = 14
+    BIGGER_SIZE = 14
+
+    plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
+    plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
+    plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+    plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
+    plt.rc('figure', titlesize=BIGGER_SIZE)
+    # plt.rcParams.update({'font.size': 132})
+    sample1 = np.array([10, 20, 21])
+    sample2 = np.array([40, 60, 30])
+    plt.bar(np.arange(0, 6, 2) + 1, sample1, color='r', width=0.5, label="isoform1")
+    plt.bar(np.arange(0, 6, 2) + 1.5, sample2, width=0.5, label="isoform2")
+    plt.ylim([0, 70])
+    plt.xlim([-0.01, 7])
+    plt.ylabel("# Reads")
+    plt.legend()
+    plt.title("Camk2a")
+    plt.xticks(np.arange(0, 6, 2) + 1.5, ["Acute", "Chronic", "Challenge"])
+    plt.show()
     make_gui()
     grph = Graphics()
     # path = sys.argv[1]
@@ -398,11 +421,14 @@ def main():
     fracs = calculateFractions(alternatives)
     # data = fracs[0].getSamples()
     # symbols = [fracs[0].getName()]
+    # print(len(fracs))
     # for frac in fracs[1:]:
     #     data = np.vstack((data, frac.getSamples()))
     #     symbols.append(frac.getName())
-    # pca = PCAVisual(np.transpose(data), symbols)
+    # pca = PCAVisual(data, symbols)
     # pca.show(DATA_FILE)
+    # while True:
+    #     continue
     annotations = readAnnotation(ANNOT_FILE)
     for gene in fracs:
         gene.setCDS(annotations[gene.getName()][2:])
