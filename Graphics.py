@@ -103,6 +103,17 @@ class Graphics:
         :param name2: file for all the symbols from 'shifts' list
         :return: list of the significant genes.
         """
+        SMALL_SIZE = 14
+        MEDIUM_SIZE = 14
+        BIGGER_SIZE = 14
+
+        plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
+        plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
+        plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+        plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+        plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+        plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
+        plt.rc('figure', titlesize=BIGGER_SIZE)
         shifts.sort(key=lambda x: x.getPValue())
         forhist = []
         maxshift = []
@@ -124,6 +135,8 @@ class Graphics:
             file1 = open(name1, 'w')
             file2 = open(name2, 'w')
         for i in range(len(forhist)):
+            if maxshift[i] > 2 and forhist[i] > 1:
+                print(togoterm[i])
             if out:
                 file2.write(togoterm[i] + "\n")
             if maxshift[i] < shift or forhist[i] < logpval:
@@ -139,12 +152,12 @@ class Graphics:
             file1.close()
             file2.close()
         print("Non significant: " + str(len(bluex)) + "\nSignificant: " + str(len(redx)))
-        plt.scatter(bluex, bluey, color='b', label="Low fold change and high p-value")
-        plt.scatter(redx, redy, color='r', label="High fold change and low p-value")
+        plt.scatter(bluex, bluey, color='b', label="Low fold change and high p-value", s=40)
+        plt.scatter(redx, redy, color='b', label="High fold change and low p-value", s=40)
         plt.xlabel("-log10(p-value)")
         plt.ylabel("fold change")
-        plt.title("Scatter plot of p-value (Kruskal Wallis) vs Fold change (=1.5)")
-        plt.legend(loc='upper left')
+        # plt.title("Scatter plot of p-value (Kruskal Wallis) vs Fold change (=1.5)")
+        # plt.legend(loc='upper left')
         plt.show()
         return topdf2
 

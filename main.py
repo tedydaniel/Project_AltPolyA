@@ -382,29 +382,40 @@ def make_gui():
 
 
 def main():
-    SMALL_SIZE = 14
-    MEDIUM_SIZE = 14
-    BIGGER_SIZE = 14
-
-    plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
-    plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
-    plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
-    plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-    plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-    plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
-    plt.rc('figure', titlesize=BIGGER_SIZE)
-    # plt.rcParams.update({'font.size': 132})
-    sample1 = np.array([10, 20, 21])
-    sample2 = np.array([40, 60, 30])
-    plt.bar(np.arange(0, 6, 2) + 1, sample1, color='r', width=0.5, label="isoform1")
-    plt.bar(np.arange(0, 6, 2) + 1.5, sample2, width=0.5, label="isoform2")
-    plt.ylim([0, 70])
-    plt.xlim([-0.01, 7])
-    plt.ylabel("# Reads")
-    plt.legend()
-    plt.title("Camk2a")
-    plt.xticks(np.arange(0, 6, 2) + 1.5, ["Acute", "Chronic", "Challenge"])
-    plt.show()
+    # SMALL_SIZE = 14
+    # MEDIUM_SIZE = 14
+    # BIGGER_SIZE = 14
+    #
+    # plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
+    # plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
+    # plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+    # plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    # plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+    # plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
+    # plt.rc('figure', titlesize=BIGGER_SIZE)
+    #
+    # acute = [0.321, 0.24, 0.25, 0.267, 0.226, 0.22, 0.242, 0.207]
+    # chronic = [0.162, 0.196, 0.184, 0.153, 0.0954, 0.165, 0.17, 0.149]
+    # challenge = [0.171, 0.223, 0.263, 0.187, 0.162, 0.356, 0.197]
+    #
+    # plt.boxplot([acute, chronic, challenge])
+    # plt.title("Camk2a\nThe short isoform")
+    # plt.ylabel("fraction")
+    # plt.xticks(np.arange(0, 3) + 1, ["Acute", "Chronic", "Challenge"])
+    # plt.show()
+    #
+    # # plt.rcParams.update({'font.size': 132})
+    # sample1 = np.array([10, 20, 21])
+    # sample2 = np.array([40, 60, 30])
+    # plt.bar(np.arange(0, 6, 2) + 1, sample1, color='r', width=0.5, label="isoform1")
+    # plt.bar(np.arange(0, 6, 2) + 1.5, sample2, width=0.5, label="isoform2")
+    # plt.ylim([0, 70])
+    # plt.xlim([-0.01, 7])
+    # plt.ylabel("# Reads")
+    # plt.legend()
+    # plt.title("Camk2a")
+    # plt.xticks(np.arange(0, 6, 2) + 1.5, ["Acute", "Chronic", "Challenge"])
+    # plt.show()
     make_gui()
     grph = Graphics()
     # path = sys.argv[1]
