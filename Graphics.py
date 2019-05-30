@@ -91,6 +91,72 @@ class Graphics:
         plt.title("Cumulative histogram of p-value of the annotated genes(n=" + str(len(forhist)) + ")")
         plt.show()
 
+
+    def length_by_regulation(self, genes):
+        upreg = []
+        downreg = []
+        updown = []
+        downup = []
+        for gene in genes:
+            gene.calculate_lengths()
+            if abs(gene.getLengths()[gene.getNumTranscript() - 1]) > 10000:
+                continue
+            acute = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][:SAMPLES_PARTS[0]])
+            challenge = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
+            chronic = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[1]:])
+            if acute <= chronic <= challenge:
+                upreg.append(gene.getLengths()[gene.getNumTranscript() - 1])
+            elif acute >= chronic >= challenge:
+                downreg.append(gene.getLengths()[gene.getNumTranscript() - 1])
+            elif acute >= chronic <= challenge:
+                downup.append(gene.getLengths()[gene.getNumTranscript() - 1])
+            else:
+                updown.append(gene.getLengths()[gene.getNumTranscript() - 1])
+
+        x_pos = np.arange(4)
+        ctes = [np.mean(upreg), np.mean(downreg), np.mean(updown), np.mean(downup)]
+        std_downreg = 0
+        if downreg:
+            std_downreg = np.std(downreg)
+        fig, ax = plt.subplots()
+        ax.bar(x_pos, ctes, align='center', alpha=0.5, ecolor='black', capsize=10)
+        ax.set_xticks(x_pos)
+        ax.set_xticklabels(['Upreg', 'Downreg', 'Updown', 'Downup'])
+        ax.set_ylabel("Tail relative length")
+        plt.title("Variance of the tail lengths\ns.d. " + str(int(np.std(upreg))) +
+                  " , " + str(int(std_downreg)) + " , " + str(int(np.std(updown))) +
+                  " , " + str(int(np.std(downup))))
+        plt.plot([0] * len(upreg), upreg, 'ko')
+        plt.plot([1] * len(downreg), downreg, 'ko')
+        plt.plot([2] * len(updown), updown, 'ko')
+        plt.plot([3] * len(downup), downup, 'ko')
+        plt.show()
+
+
+    def temp_plots(self):
+        # acute = [0.321, 0.24, 0.25, 0.267, 0.226, 0.22, 0.242, 0.207]
+        # chronic = [0.162, 0.196, 0.184, 0.153, 0.0954, 0.165, 0.17, 0.149]
+        # challenge = [0.171, 0.223, 0.263, 0.187, 0.162, 0.356, 0.197]
+        #
+        # plt.boxplot([acute, chronic, challenge])
+        # plt.title("Camk2a\nThe short isoform")
+        # plt.ylabel("fraction")
+        # plt.xticks(np.arange(0, 3) + 1, ["Acute", "Chronic", "Challenge"])
+        # plt.show()
+
+        # plt.rcParams.update({'font.size': 132})
+        sample1 = np.array([0.247, 0.159, 0.218])
+        sample2 = np.array([0.753, 0.841, 0.782])
+        plt.bar(np.arange(0, 6, 2) + 1, sample1, color='r', bottom=sample2, width=0.5, label="isoform1")
+        plt.bar(np.arange(0, 6, 2) + 1, sample2, width=0.5, label="isoform2")
+        plt.ylim([0, 1.1])
+        plt.xlim([-0.01, 7])
+        plt.ylabel("fraction")
+        plt.legend()
+        plt.title("Camk2a")
+        plt.xticks(np.arange(0, 6, 2) + 1.25, ["Acute", "Chronic", "Challenge"])
+        plt.show()
+
     def scatter_pval_to_fold(self, shifts, shift=1.5, logpval=1, out=True,
                         name1="sig_nac.txt", name2="all_nac.txt"):
         """
@@ -103,18 +169,6 @@ class Graphics:
         :param name2: file for all the symbols from 'shifts' list
         :return: list of the significant genes.
         """
-        SMALL_SIZE = 14
-        MEDIUM_SIZE = 14
-        BIGGER_SIZE = 14
-
-        plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
-        plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
-        plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
-        plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-        plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-        plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
-        plt.rc('figure', titlesize=BIGGER_SIZE)
-        shifts.sort(key=lambda x: x.getPValue())
         forhist = []
         maxshift = []
         togoterm = []
@@ -135,8 +189,8 @@ class Graphics:
             file1 = open(name1, 'w')
             file2 = open(name2, 'w')
         for i in range(len(forhist)):
-            if maxshift[i] > 2 and forhist[i] > 1:
-                print(togoterm[i])
+            # if maxshift[i] > 2 and forhist[i] > 1:
+            #     print(togoterm[i])
             if out:
                 file2.write(togoterm[i] + "\n")
             if maxshift[i] < shift or forhist[i] < logpval:

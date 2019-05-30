@@ -25,6 +25,18 @@ PEAK_WINDOW = 1000
 DATA_FILE = ""
 ANNOT_FILE=""
 
+SMALL_SIZE = 14
+MEDIUM_SIZE = 14
+BIGGER_SIZE = 14
+
+plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
+plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
+plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
+plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
+plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
+plt.rc('figure', titlesize=BIGGER_SIZE)
+
 
 names = []
 
@@ -214,12 +226,9 @@ def readAnnotation(path):
     file.readline()
     line = file.readline()
     data = {}
-    # data = []
     while line != '':
         columns = line.split()
-    #     reads = np.array([])
         name = columns[-4]
-    #     chrm = columns[2]
         start = int(columns[4])
         end = int(columns[5])
         cds_start = int(columns[6])
@@ -254,6 +263,15 @@ def findAnnotatedShifts(shifted, annotation):
                 NOT_ANNOTATED.append(shifted_gene.getName())
                 shifted_gene.addNonAnnotated(counter)
             counter += 1
+
+def check_cds(genes, annotations):
+    for gene in genes:
+        cds_end = np.max(annotations[gene.getName()][:, 3])
+        for coordinate in gene.getCoordinates():
+            if coordinate[1] < cds_end:
+                print(gene.getName())
+
+
 
 
 def correct_fdr(data):
@@ -381,46 +399,11 @@ def make_gui():
     top.mainloop()
 
 
+
+
 def main():
-    # SMALL_SIZE = 14
-    # MEDIUM_SIZE = 14
-    # BIGGER_SIZE = 14
-    #
-    # plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
-    # plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
-    # plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
-    # plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-    # plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-    # plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
-    # plt.rc('figure', titlesize=BIGGER_SIZE)
-    #
-    # acute = [0.321, 0.24, 0.25, 0.267, 0.226, 0.22, 0.242, 0.207]
-    # chronic = [0.162, 0.196, 0.184, 0.153, 0.0954, 0.165, 0.17, 0.149]
-    # challenge = [0.171, 0.223, 0.263, 0.187, 0.162, 0.356, 0.197]
-    #
-    # plt.boxplot([acute, chronic, challenge])
-    # plt.title("Camk2a\nThe short isoform")
-    # plt.ylabel("fraction")
-    # plt.xticks(np.arange(0, 3) + 1, ["Acute", "Chronic", "Challenge"])
-    # plt.show()
-    #
-    # # plt.rcParams.update({'font.size': 132})
-    # sample1 = np.array([10, 20, 21])
-    # sample2 = np.array([40, 60, 30])
-    # plt.bar(np.arange(0, 6, 2) + 1, sample1, color='r', width=0.5, label="isoform1")
-    # plt.bar(np.arange(0, 6, 2) + 1.5, sample2, width=0.5, label="isoform2")
-    # plt.ylim([0, 70])
-    # plt.xlim([-0.01, 7])
-    # plt.ylabel("# Reads")
-    # plt.legend()
-    # plt.title("Camk2a")
-    # plt.xticks(np.arange(0, 6, 2) + 1.5, ["Acute", "Chronic", "Challenge"])
-    # plt.show()
     make_gui()
     grph = Graphics()
-    # path = sys.argv[1]
-    # anotation_path = sys.argv[2]
-    # output_filename = sys.argv[3]
     print("Reading the file...")
     fromFile = readTheFile(DATA_FILE)
     alternatives = findAlternatives(fromFile)
@@ -430,71 +413,17 @@ def main():
         print("No alternatives, check the arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
-    # data = fracs[0].getSamples()
-    # symbols = [fracs[0].getName()]
-    # print(len(fracs))
-    # for frac in fracs[1:]:
-    #     data = np.vstack((data, frac.getSamples()))
-    #     symbols.append(frac.getName())
-    # pca = PCAVisual(data, symbols)
-    # pca.show(DATA_FILE)
-    # while True:
-    #     continue
     annotations = readAnnotation(ANNOT_FILE)
-    for gene in fracs:
-        gene.setCDS(annotations[gene.getName()][2:])
-    print(fracs[0].m_cds)
     print("Checks the annotations...")
     findAnnotatedShifts(fracs, annotations)
     shifts = findShifts(fracs)
     shifts = correct_fdr(shifts)
-    # grph.hist_of_pvalue(shifts)
+    print(len(shifts))
     topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5)
-    upreg = []
-    downreg = []
-    updown = []
-    downup = []
-    for gene in topdf2:
-        gene.calculate_lengths()
-        if abs(gene.getLengths()[gene.getNumTranscript() - 1]) > 10000:
-            continue
-        acute = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][:SAMPLES_PARTS[0]])
-        challenge = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
-        chronic = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[1]:])
-        if acute <= chronic <= challenge:
-            upreg.append(gene.getLengths()[gene.getNumTranscript() - 1])
-        elif acute >= chronic >= challenge:
-            downreg.append(gene.getLengths()[gene.getNumTranscript() - 1])
-        elif acute >= chronic <= challenge:
-            downup.append(gene.getLengths()[gene.getNumTranscript() - 1])
-        else:
-            updown.append(gene.getLengths()[gene.getNumTranscript() - 1])
-
-    x_pos = np.arange(4)
-    ctes = [np.mean(upreg), np.mean(downreg), np.mean(updown), np.mean(downup)]
-    std_downreg = 0
-    if downreg:
-        std_downreg = np.std(downreg)
-    fig, ax = plt.subplots()
-    ax.bar(x_pos, ctes, align='center', alpha=0.5, ecolor='black', capsize=10)
-    ax.set_xticks(x_pos)
-    ax.set_xticklabels(['Upreg', 'Downreg', 'Updown', 'Downup'])
-    ax.set_ylabel("Tail relative length")
-    plt.title("Variance of the tail lengths\ns.d. " + str(int(np.std(upreg))) +
-              " , " + str(int(std_downreg)) + " , " + str(int(np.std(updown))) +
-              " , " + str(int(np.std(downup))))
-    plt.plot([0] * len(upreg), upreg, 'ko')
-    plt.plot([1] * len(downreg), downreg, 'ko')
-    plt.plot([2] * len(updown), updown, 'ko')
-    plt.plot([3] * len(downup), downup, 'ko')
-    plt.show()
-    # while(True):
-    #     continue
-        # if gene.getName() == "Klf13":
-            # grph.bars_plot(gene, SAMPLES_PARTS)
+    check_cds(topdf2, annotations)
     grph.fold_change_and_pvalue(shifts)
     print("Writing the output...")
-    grph.data_to_heat_map(topdf2, names)
+    # grph.data_to_heat_map(topdf2, names)
     # writeShifted(shifts, path, output_filename)
     # data = topdf2[0].getSamples()
     # symbols = [topdf2[0].getName()]
