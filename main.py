@@ -10,6 +10,7 @@ from statsmodels.stats.multitest import fdrcorrection as fdr
 import tkinter as tk
 from os import listdir
 from os.path import isfile, join
+import SimpleMotifsFinder
 
 
 #run parameters
@@ -269,7 +270,8 @@ def check_cds(genes, annotations):
         cds_end = np.max(annotations[gene.getName()][:, 3])
         for coordinate in gene.getCoordinates():
             if coordinate[1] < cds_end:
-                print(gene.getName())
+                continue
+                # print(gene.getName())
 
 
 
@@ -425,12 +427,19 @@ def main():
     findAnnotatedShifts(fracs, annotations)
     shifts = findShifts(fracs)
     shifts = correct_fdr(shifts)
-    print(len(shifts))
     topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5)
     sorted(topdf2, key=lambda x: x.getName())
+    fm = SimpleMotifsFinder.Family()
+    sequences = open("utrs.fa", 'w')
     for gene in topdf2:
-        if gene.getName() == 'Camk2a':
-            grph.show_change_in_box(gene, SAMPLES_PARTS)
+        seq = gene.getSequence()
+        sequences.write(">" + gene.getName() + "\n")
+        sequences.write(seq + "\n")
+        fm.hash_sequence(seq)
+        # if gene.getName() == 'Camk2a':
+        #     grph.show_change_in_box(gene, SAMPLES_PARTS)
+    sequences.close()
+    fm.write_motifs()
     check_cds(topdf2, annotations)
     grph.fold_change_and_pvalue(shifts)
     print("Writing the output...")

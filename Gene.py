@@ -27,6 +27,7 @@ class Gene:
         self.relative_length = []
         self.percent_of_expression = -1
         self.relative_cds_length = []
+        self.sequence = ""
 
 
     def calculate_lengths(self):
@@ -48,7 +49,24 @@ class Gene:
 
 
     def getSequence(self):
-        file = open("reference\\Mus_musculus.GRCm38.dna.chromosome." + str(self.chrm) + ".fa", 'r')
+        """
+        Get the sequence of the added 3' UTR
+        :return:
+        """
+        if self.sequence != "":
+            return self.sequence
+
+        file = open("reference\\Mus_musculus.GRCm38.dna.chromosome." + str(self.chrm[-1]) + ".fa", 'r')
+        file.readline()
+        line = ""
+        start = np.min(self.m_coordinates) + 500
+        end = np.max(self.m_coordinates)
+        for i in range(int(start / 60)):
+            file.readline()
+        for i in range(int((end - start) / 60) + 1):
+            line += file.readline()[:-1]
+        file.close()
+        return line
 
 
 
