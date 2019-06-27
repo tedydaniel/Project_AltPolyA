@@ -133,29 +133,35 @@ class Graphics:
         plt.show()
 
 
-    def temp_plots(self):
-        # acute = [0.321, 0.24, 0.25, 0.267, 0.226, 0.22, 0.242, 0.207]
-        # chronic = [0.162, 0.196, 0.184, 0.153, 0.0954, 0.165, 0.17, 0.149]
-        # challenge = [0.171, 0.223, 0.263, 0.187, 0.162, 0.356, 0.197]
-        #
-        # plt.boxplot([acute, chronic, challenge])
-        # plt.title("Camk2a\nThe short isoform")
-        # plt.ylabel("fraction")
-        # plt.xticks(np.arange(0, 3) + 1, ["Acute", "Chronic", "Challenge"])
-        # plt.show()
+    def show_change_in_box(self, gene, segments):
+        """
+        Changed 30.5
+        :param gene:
+        :param segments:
+        :return:
+        """
+        acute = gene.getSamples()[gene.getNumTranscript() - 1][:segments[0]]
+        challenge = gene.getSamples()[gene.getNumTranscript() - 1][segments[0]:segments[1]]
+        chronic = gene.getSamples()[gene.getNumTranscript() - 1][segments[1]:]
 
-        # plt.rcParams.update({'font.size': 132})
-        sample1 = np.array([0.247, 0.159, 0.218])
-        sample2 = np.array([0.753, 0.841, 0.782])
-        plt.bar(np.arange(0, 6, 2) + 1, sample1, color='r', bottom=sample2, width=0.5, label="isoform1")
-        plt.bar(np.arange(0, 6, 2) + 1, sample2, width=0.5, label="isoform2")
-        plt.ylim([0, 1.1])
-        plt.xlim([-0.01, 7])
-        plt.ylabel("fraction")
-        plt.legend()
-        plt.title("Camk2a")
-        plt.xticks(np.arange(0, 6, 2) + 1.25, ["Acute", "Chronic", "Challenge"])
+        plt.boxplot([acute, chronic, challenge])
+        # plt.title(gene.getName() + "\n" + "isoform " + str(gene.getNumTranscript()))
+        plt.title(gene.getName() + "\n" + "The Short Isoform", weight='bold')
+        plt.ylabel("fraction", weight='bold')
+        plt.xticks(np.arange(0, 3) + 1, ["Acute", "Chronic", "Challenge"])
         plt.show()
+
+        # sample1 = np.array([0.247, 0.159, 0.218])
+        # sample2 = np.array([0.753, 0.841, 0.782])
+        # plt.bar(np.arange(0, 6, 2) + 1, sample1, color='r', bottom=sample2, width=0.5, label="isoform1")
+        # plt.bar(np.arange(0, 6, 2) + 1, sample2, width=0.5, label="isoform2")
+        # plt.ylim([0, 1.1])
+        # plt.xlim([-0.01, 7])
+        # plt.ylabel("fraction")
+        # plt.legend()
+        # plt.title("Camk2a")
+        # plt.xticks(np.arange(0, 6, 2) + 1.25, ["Acute", "Chronic", "Challenge"])
+        # plt.show()
 
     def scatter_pval_to_fold(self, shifts, shift=1.5, logpval=1, out=True,
                         name1="sig_nac.txt", name2="all_nac.txt"):
@@ -206,10 +212,11 @@ class Graphics:
             file1.close()
             file2.close()
         print("Non significant: " + str(len(bluex)) + "\nSignificant: " + str(len(redx)))
-        plt.scatter(bluex, bluey, color='b', label="Low fold change and high p-value", s=40)
-        plt.scatter(redx, redy, color='b', label="High fold change and low p-value", s=40)
-        plt.xlabel("-log10(p-value)")
-        plt.ylabel("fold change")
+        plt.scatter(bluey, bluex, color='b', label="Low fold change and high p-value", s=40)
+        plt.scatter(redy, redx, color='r', label="High fold change and low p-value", s=40)
+        plt.figure(figsize=(8,3))
+        plt.ylabel("-log10(p-value)", weight='bold')
+        plt.xlabel("fold change", weight='bold')
         # plt.title("Scatter plot of p-value (Kruskal Wallis) vs Fold change (=1.5)")
         # plt.legend(loc='upper left')
         plt.show()

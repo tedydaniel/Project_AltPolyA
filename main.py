@@ -25,16 +25,16 @@ PEAK_WINDOW = 1000
 DATA_FILE = ""
 ANNOT_FILE=""
 
-SMALL_SIZE = 14
-MEDIUM_SIZE = 14
-BIGGER_SIZE = 14
+SMALL_SIZE = 16
+MEDIUM_SIZE = 16
+BIGGER_SIZE = 16
 
-plt.rc('font', size=SMALL_SIZE)  # controls default text sizes
+plt.rc('font', size=SMALL_SIZE, weight='bold')  # controls default text sizes
 plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
 plt.rc('axes', labelsize=MEDIUM_SIZE)  # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
-plt.rc('legend', fontsize=SMALL_SIZE)  # legend fontsize
+plt.rc('legend', fontsize=14)  # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)
 
 
@@ -413,6 +413,13 @@ def main():
         print("No alternatives, check the arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
+    # data = fracs[0].getSamples()
+    # symbols = [fracs[0].getName()]
+    # for frac in fracs[1:]:
+    #     data = np.vstack((data, frac.getSamples()))
+    #     symbols.append(frac.getName())
+    # pca = PCAVisual(data, symbols)
+    # pca.show(DATA_FILE)
     annotations = readAnnotation(ANNOT_FILE)
     print("Checks the annotations...")
     findAnnotatedShifts(fracs, annotations)
@@ -420,6 +427,10 @@ def main():
     shifts = correct_fdr(shifts)
     print(len(shifts))
     topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5)
+    sorted(topdf2, key=lambda x: x.getName())
+    for gene in topdf2:
+        if gene.getName() == 'Camk2a':
+            grph.show_change_in_box(gene, SAMPLES_PARTS)
     check_cds(topdf2, annotations)
     grph.fold_change_and_pvalue(shifts)
     print("Writing the output...")
