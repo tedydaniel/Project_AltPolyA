@@ -47,6 +47,11 @@ class Gene:
                 self.relative_cds_length.append(self.m_coordinates[i][1] - self.m_cds[related][1])
 
 
+    def getSequence(self):
+        file = open("reference\\Mus_musculus.GRCm38.dna.chromosome." + str(self.chrm) + ".fa", 'r')
+
+
+
 
     def getLengths(self):
         if self.relative_length:
