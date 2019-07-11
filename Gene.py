@@ -56,7 +56,7 @@ class Gene:
         if self.sequence != "":
             return self.sequence
 
-        file = open("reference\\Mus_musculus.GRCm38.dna.chromosome." + str(self.chrm[-1]) + ".fa", 'r')
+        file = open("reference\\Mus_musculus.GRCm38.dna.chromosome." + str(self.chrm[3:]) + ".fa", 'r')
         file.readline()
         line = ""
         start = np.min(self.m_coordinates) + 500

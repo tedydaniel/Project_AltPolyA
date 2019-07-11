@@ -1,3 +1,11 @@
+"""
+Should start the analysis from this script.
+It starts the GUI for choosing the option for the data file ("3end" extension).
+
+"""
+
+
+
 import numpy as np
 from PCAVisual import PCAVisual
 from Gene import Gene
@@ -11,7 +19,8 @@ import tkinter as tk
 from os import listdir
 from os.path import isfile, join
 import SimpleMotifsFinder
-
+import threading
+from multiprocessing import Process
 
 #run parameters
 PERCENT_OF_SHIFT = 1
@@ -431,13 +440,26 @@ def main():
     sorted(topdf2, key=lambda x: x.getName())
     fm = SimpleMotifsFinder.Family()
     sequences = open("utrs.fa", 'w')
+    threads = []
+    """
+    The next lines can be executed using multiprocessing or multithreading.
+    These are some times for each approach(run on set of 37 genes):
+    Threading: 50 seconds
+    Processing: 137.8 seconds
+    Neither: 57.1 seconds
+    """
     for gene in topdf2:
         seq = gene.getSequence()
         sequences.write(">" + gene.getName() + "\n")
         sequences.write(seq + "\n")
-        fm.hash_sequence(seq)
+        thread = threading.Thread(target=fm.hash_sequence, args=(seq,))
+        thread.start()
+        threads.append(thread)
+        # fm.hash_sequence(seq)
         # if gene.getName() == 'Camk2a':
         #     grph.show_change_in_box(gene, SAMPLES_PARTS)
+    for thread in threads:
+        thread.join()
     sequences.close()
     fm.write_motifs()
     check_cds(topdf2, annotations)

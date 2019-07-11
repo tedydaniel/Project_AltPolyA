@@ -3,7 +3,7 @@
 This finder using hashing to find motifs of any length with any number of mistakes.
 """
 
-k = 15
+k = 20
 delta = 1
 
 
