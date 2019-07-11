@@ -413,6 +413,53 @@ def make_gui():
 
 
 def main():
+    my_dict = {}
+    all_file = open("motifs-7-mers.txt", "r")
+    line = all_file.readline()
+    while line != "":
+        temp = line.split()
+        my_dict[temp[0]] = (np.float64(temp[1]) / 1982, 0)
+        # abund.append(int(temp[1]) / 1982)
+        line = all_file.readline()
+
+    sig_file = open("motifs-7-mers_significant.txt", "r")
+    line = sig_file.readline()
+    sig_motifs = []
+    while line != "":
+        temp = line.split()
+        sig_motifs.append(temp[0])
+        if temp[0] in my_dict:
+            my_dict[temp[0]] = (my_dict[temp[0]][0], np.float64(temp[1]) / 37)
+        else:
+            my_dict[temp[0]][1] = (0, np.float64(temp[1]) / 37)
+        # abund.append(int(temp[1]) / 1982)
+        line = sig_file.readline()
+    to_sort = []
+    for item in my_dict:
+        to_sort.append((item, my_dict[item]))
+    to_sort.sort(key=lambda x: x[1][0])
+    # to_sort.sort(key=lambda x: x[1][1])
+    a = []
+    b = []
+    dots = []
+    for item in to_sort:
+        if item[0] in sig_motifs:
+            a.append(item[1][0])
+            b.append(item[1][1])
+            dots.append(np.log2(a[-1] / b[-1]))
+            if dots[-1] < -1:
+                print(item[0])
+    plt.plot(a[:8000], "r")
+    plt.plot(b[:8000], "b")
+    plt.show()
+    plt.plot(dots, "co")
+    plt.show()
+
+    # print(motifs)
+    # plt.plot(motifs, abund)
+    # plt.show()
+    while True:
+        continue
     make_gui()
     grph = Graphics()
     print("Reading the file...")
@@ -424,6 +471,7 @@ def main():
         print("No alternatives, check the arguments")
         raise SystemExit
     fracs = calculateFractions(alternatives)
+    print(len(fracs))
     # data = fracs[0].getSamples()
     # symbols = [fracs[0].getName()]
     # for frac in fracs[1:]:
@@ -439,7 +487,7 @@ def main():
     topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5)
     sorted(topdf2, key=lambda x: x.getName())
     fm = SimpleMotifsFinder.Family()
-    sequences = open("utrs.fa", 'w')
+    sequences = open("utrs_all_alt.fa", 'w')
     threads = []
     """
     The next lines can be executed using multiprocessing or multithreading.
@@ -448,8 +496,9 @@ def main():
     Processing: 137.8 seconds
     Neither: 57.1 seconds
     """
-    for gene in topdf2:
+    for gene in fracs:
         seq = gene.getSequence()
+        print(gene.getName())
         sequences.write(">" + gene.getName() + "\n")
         sequences.write(seq + "\n")
         thread = threading.Thread(target=fm.hash_sequence, args=(seq,))
