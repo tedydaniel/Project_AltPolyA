@@ -20,7 +20,7 @@ from os.path import isfile, join
 import SimpleMotifsFinder
 import threading
 from multiprocessing import Process
-import GUI
+from GUI import GUI
 
 #run parameters
 PERCENT_OF_SHIFT = 1
@@ -38,6 +38,7 @@ ANNOT_FILE=""
 SMALL_SIZE = 16
 MEDIUM_SIZE = 16
 BIGGER_SIZE = 16
+gui = 0
 
 plt.rc('font', size=SMALL_SIZE, weight='bold')  # controls default text sizes
 plt.rc('axes', titlesize=SMALL_SIZE)  # fontsize of the axes title
@@ -354,18 +355,16 @@ def writeShifted(shifted, path, name):
     file.close()
 
 
-
-
-def main():
-    GUI.make_gui()
+def routine(gui, DATA_FILE, ANNOT_FILE):
+    gui.write_to_output("Reading the file...\n")
     grph = Graphics()
     print("Reading the file...")
     fromFile = readTheFile(DATA_FILE)
     alternatives = findAlternatives(fromFile)
     if len(alternatives) > 0:
-        print("Found alternatives...")
+        gui.write_to_output("Found alternatives...\n")
     else:
-        print("No alternatives, check the arguments")
+        gui.write_to_output("No alternatives, check the arguments\n")
         raise SystemExit
     fracs = calculateFractions(alternatives)
     print(len(fracs))
@@ -420,6 +419,13 @@ def main():
     #     symbols.append(frac.getName())
     # pca = PCAVisual(np.transpose(data), symbols)
     # pca.show(DATA_FILE)
+
+
+
+def main():
+    gui = GUI(routine)
+    gui.start()
+
 
 if __name__ == "__main__":
     main()
