@@ -1,11 +1,21 @@
-
+import tkinter as tk
+import sys
+from os import listdir
+from os.path import isfile, join
 
 def make_gui():
     top = tk.Tk()
-    leftframe = tk.Frame(top)
+    topframe = tk.Frame(top)
+    topframe.pack()
+    leftframe = tk.Frame(topframe)
     leftframe.pack(side=tk.LEFT)
-    rightframe = tk.Frame(top)
+    rightframe = tk.Frame(topframe)
     rightframe.pack(side=tk.RIGHT)
+    bottomframe = tk.Frame(top)
+    bottomframe.pack(side=tk.BOTTOM)
+    output = tk.Text(bottomframe)
+    output.insert(tk.INSERT, "Hello")
+    output.pack()
 
     var1 = tk.IntVar()
     var2 = tk.IntVar()
