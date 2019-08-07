@@ -358,7 +358,6 @@ def writeShifted(shifted, path, name):
 def routine(gui, DATA_FILE, ANNOT_FILE):
     gui.write_to_output("Reading the file...\n")
     grph = Graphics()
-    print("Reading the file...")
     fromFile = readTheFile(DATA_FILE)
     alternatives = findAlternatives(fromFile)
     if len(alternatives) > 0:
@@ -367,7 +366,6 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
         gui.write_to_output("No alternatives, check the arguments\n")
         raise SystemExit
     fracs = calculateFractions(alternatives)
-    print(len(fracs))
     # data = fracs[0].getSamples()
     # symbols = [fracs[0].getName()]
     # for frac in fracs[1:]:

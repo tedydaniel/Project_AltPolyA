@@ -2,9 +2,11 @@ import tkinter as tk
 import sys
 from os import listdir
 from os.path import isfile, join
+import threading
 
 
 class GUI:
+
     def __init__(self, start_routine):
         self.top = tk.Tk()
         self.topframe = tk.Frame(self.top)
@@ -18,6 +20,7 @@ class GUI:
         self.output = tk.Text(self.bottomframe)
         self.output.insert(tk.INSERT, "Starting...\n")
         self.start_routine = start_routine
+        self.output.pack()
 
 
     def start(self):
@@ -42,6 +45,9 @@ class GUI:
         def but1():
             DATA_FILE = data_files[var1.get()]
             ANNOT_FILE = annot_files[var2.get()]
+            # thread = threading.Thread(target=self.start_routine, args=(self, DATA_FILE, ANNOT_FILE))
+            # thread.start()
+            # thread.join()
             self.start_routine(self, DATA_FILE, ANNOT_FILE)
             self.top.mainloop()
             # self.top.destroy()
@@ -70,4 +76,4 @@ class GUI:
 
     def write_to_output(self, msg = "None"):
         self.output.insert(tk.INSERT, msg)
-        self.output.pack()
+        self.top.update()
