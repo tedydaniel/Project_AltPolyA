@@ -18,7 +18,7 @@ class GUI:
         self.bottomframe = tk.Frame(self.top)
         self.bottomframe.pack(side=tk.BOTTOM)
         self.output = tk.Text(self.bottomframe)
-        self.output.insert(tk.INSERT, "Starting...\n")
+        self.output.insert(tk.INSERT, "Choose the files and press 'start'\n")
         self.start_routine = start_routine
         self.output.pack()
 
@@ -51,6 +51,10 @@ class GUI:
             self.start_routine(self, DATA_FILE, ANNOT_FILE)
             self.top.mainloop()
             # self.top.destroy()
+        def but2():
+            exit(0)
+        b2 = tk.Button(self.leftframe, text="Exit", command=but2)
+        b2.pack(side=tk.BOTTOM)
         b1 = tk.Button(self.leftframe, text="Start", command=but1)
         b1.pack(side=tk.BOTTOM)
         CheckVar1 = tk.IntVar()
@@ -74,6 +78,10 @@ class GUI:
         c_to_pdf.pack()
         self.top.mainloop()
 
-    def write_to_output(self, msg = "None"):
-        self.output.insert(tk.INSERT, msg)
+    def write_to_output(self, msg = "None", overwrite=False):
+        if overwrite:
+            self.output.delete(tk.END)
+            self.output.insert(tk.INSERT, msg)
+        else:
+            self.output.insert(tk.INSERT, msg)
         self.top.update()

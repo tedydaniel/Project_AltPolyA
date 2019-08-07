@@ -227,7 +227,7 @@ def findShifts(alternatives):
     return shifted
 
 
-def readAnnotation(path):
+def readAnnotation(path, gui):
     """
     Returns a list of Gene objects sorted by names, the data is annotations
     :param path:
@@ -237,7 +237,11 @@ def readAnnotation(path):
     file.readline()
     line = file.readline()
     data = {}
+    counter = 0
     while line != '':
+        counter += 1
+        if counter % 1000 == 0:
+            gui.write_to_output("Done reading " + str(counter) + " values", overwrite=True)
         columns = line.split()
         name = columns[-4]
         start = int(columns[4])
@@ -255,9 +259,16 @@ def readAnnotation(path):
     return data
 
 
-def findAnnotatedShifts(shifted, annotation):
+def findAnnotatedShifts(shifted, annotation, gui):
     global NOT_ANNOTATED
+    counter = 0
+    percent = 10
+    out_of = len(shifted)
     for shifted_gene in shifted:
+        counter += 1
+        if ((counter / out_of) * 100) > percent:
+            gui.write_to_output(msg=str(percent) + "%...", overwrite=True)
+            percent += 10
         counter = 1
         for coordinate in shifted_gene.getCoordinates():
             isAnnotated = False
@@ -373,12 +384,13 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     #     symbols.append(frac.getName())
     # pca = PCAVisual(data, symbols)
     # pca.show(DATA_FILE)
-    annotations = readAnnotation(ANNOT_FILE)
-    print("Checks the annotations...")
-    findAnnotatedShifts(fracs, annotations)
+    gui.write_to_output("Read the annotations file...\n")
+    annotations = readAnnotation(ANNOT_FILE, gui)
+    gui.write_to_output("Checks the annotations...\n")
+    findAnnotatedShifts(fracs, annotations, gui)
     shifts = findShifts(fracs)
     shifts = correct_fdr(shifts)
-    topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5)
+    topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5, gui=gui)
     sorted(topdf2, key=lambda x: x.getName())
     fm = SimpleMotifsFinder.Family()
     sequences = open("utrs_all_alt.fa", 'w')
@@ -391,6 +403,7 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     Neither: 57.1 seconds
     """
     for gene in fracs:
+        print("here")
         seq = gene.getSequence()
         print(gene.getName())
         sequences.write(">" + gene.getName() + "\n")
