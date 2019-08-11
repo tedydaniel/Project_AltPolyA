@@ -164,7 +164,7 @@ class Graphics:
         # plt.show()
 
     def scatter_pval_to_fold(self, shifts, shift=1.5, logpval=1, out=True,
-                        name1="sig_nac.txt", name2="all_nac.txt"):
+                        name1="sig_nac.txt", name2="all_nac.txt", gui = None):
         """
         :param shifts: list of the genes
         :param shift: the value of the shift considered significant
@@ -211,7 +211,7 @@ class Graphics:
         if out:
             file1.close()
             file2.close()
-        print("Non significant: " + str(len(bluex)) + "\nSignificant: " + str(len(redx)))
+        gui.write_to_output("Non significant: " + str(len(bluex)) + "\nSignificant: " + str(len(redx)))
         plt.scatter(bluey, bluex, color='b', label="Low fold change and high p-value", s=40)
         plt.scatter(redy, redx, color='r', label="High fold change and low p-value", s=40)
         plt.figure(figsize=(8,3))
