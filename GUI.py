@@ -3,6 +3,7 @@ import sys
 from os import listdir
 from os.path import isfile, join
 import threading
+import time
 
 
 class GUI:
@@ -18,7 +19,8 @@ class GUI:
         self.bottomframe = tk.Frame(self.top)
         self.bottomframe.pack(side=tk.BOTTOM)
         self.output = tk.Text(self.bottomframe)
-        self.output.insert(tk.INSERT, "Choose the files and press 'start'\n")
+        self.output.config(state=tk.NORMAL)
+        self.output.insert(tk.INSERT, "Choose the files and press 'Start'\n")
         self.start_routine = start_routine
         self.output.pack()
 
@@ -81,7 +83,9 @@ class GUI:
 
     def write_to_output(self, msg = "None", overwrite=False):
         if overwrite:
-            self.output.delete(tk.END)
+            cur_index = self.output.index(tk.INSERT)
+            cur_index = str(int(cur_index[0]) - 1) + cur_index[1:]
+            self.output.delete(cur_index, tk.INSERT)
             self.output.insert(tk.INSERT, msg)
         else:
             self.output.insert(tk.INSERT, msg)

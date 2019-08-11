@@ -53,7 +53,7 @@ plt.rc('figure', titlesize=BIGGER_SIZE)
 names = []
 
 
-def readTheFile(path):
+def readTheFile(path, gui):
     """
     Reading the file from tha path and returning a list of Gene objects
      sorted by gene names
@@ -74,8 +74,12 @@ def readTheFile(path):
     SAMPLES_PARTS[1] += SAMPLES_PARTS[0]
     line = file.readline()
     data = []
+    counter = 1
+    gui.write_to_output("\n")
     while line != '':
-        print("here1")
+        if counter % 1000 == 0:
+            gui.write_to_output("Done reading " + str(counter) + " lines\n", overwrite=True)
+        counter += 1
         columns = line.split()
         reads = np.array([float(x) for x in columns[5:]])
         name = columns[0]
@@ -91,6 +95,7 @@ def readTheFile(path):
         strand = columns[4]
         data.append(Gene(name, reads, np.array([start, end]).astype(np.int), strand, chrm))
         line = file.readline()
+    gui.write_to_output("Done reading " + str(counter) + " lines...Now sorting...\n", overwrite=True)
     return list(sorted(data, key=lambda x: x.getName()))
 
 
@@ -240,10 +245,11 @@ def readAnnotation(path, gui):
     line = file.readline()
     data = {}
     counter = 0
+    gui.write_to_output("\n")
     while line != '':
         counter += 1
-        if counter % 1000 == 0:
-            gui.write_to_output("Done reading " + str(counter) + " values", overwrite=True)
+        if counter % 10000 == 0:
+            gui.write_to_output("Done reading " + str(counter) + " annotation entries\n", overwrite=True)
         columns = line.split()
         name = columns[-4]
         start = int(columns[4])
@@ -258,6 +264,7 @@ def readAnnotation(path, gui):
         else:
             data[name] = np.array([[start, end, cds_start, cds_end]])
     # return list(sorted(data, key=lambda x: x.getName()))
+    gui.write_to_output("Done reading " + str(counter) + " annotation entries\n", overwrite=True)
     return data
 
 
@@ -267,11 +274,11 @@ def findAnnotatedShifts(shifted, annotation, gui):
     percent = 10
     out_of = len(shifted)
     for shifted_gene in shifted:
-        counter += 1
-        if ((counter / out_of) * 100) > percent:
-            gui.write_to_output(msg=str(percent) + "%...", overwrite=True)
-            percent += 10
-        counter = 1
+        # counter += 1
+        # if ((counter / out_of) * 100) > percent:
+        #     gui.write_to_output(msg=str(percent) + "%...", overwrite=True)
+        #     percent += 10
+        # counter = 1
         for coordinate in shifted_gene.getCoordinates():
             isAnnotated = False
             for line in annotation[shifted_gene.getName()]:
@@ -288,12 +295,14 @@ def findAnnotatedShifts(shifted, annotation, gui):
                 shifted_gene.addNonAnnotated(counter)
             counter += 1
 
-def check_cds(genes, annotations):
+def check_cds(genes, annotations, gui):
+    gui.write_to_output("Checking CDS...\n")
     for gene in genes:
         cds_end = np.max(annotations[gene.getName()][:, 3])
-        for coordinate in gene.getCoordinates():
-            if coordinate[1] < cds_end:
-                print(gene.getName())
+        coordinate = gene.getCoordinates()[gene.getNumTranscript() - 1]
+        if (gene.getStrand() == "+" and coordinate[0] < cds_end) or \
+                (gene.getStrand() == "-" and coordinate[1] > cds_end):
+            gui.write_to_output(gene.getName() + "\n")
 
 
 
@@ -373,7 +382,7 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     # gui_thread.join()
     gui.write_to_output("Reading the file...\n")
     grph = Graphics()
-    fromFile = readTheFile(DATA_FILE)
+    fromFile = readTheFile(DATA_FILE, gui)
     alternatives = findAlternatives(fromFile)
     if len(alternatives) > 0:
         gui.write_to_output("Found alternatives...\n")
@@ -399,7 +408,7 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     fm = SimpleMotifsFinder.Family()
     sequences = open("utrs_all_alt.fa", 'w')
     threads = []
-    check_cds(topdf2, annotations)
+    check_cds(topdf2, annotations, gui)
     """
     The next lines can be executed using multiprocessing or multithreading.
     These are some times for each approach(run on set of 37 genes):
@@ -407,25 +416,25 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     Processing: 137.8 seconds
     Neither: 57.1 seconds
     """
-    for gene in fracs:
-        print("here")
-        seq = gene.getSequence()
-        print(gene.getName())
-        sequences.write(">" + gene.getName() + "\n")
-        sequences.write(seq + "\n")
-        thread = threading.Thread(target=fm.hash_sequence, args=(seq,))
-        thread.start()
-        threads.append(thread)
-        # fm.hash_sequence(seq)
-        # if gene.getName() == 'Camk2a':
-        #     grph.show_change_in_box(gene, SAMPLES_PARTS)
-    for thread in threads:
-        thread.join()
-    sequences.close()
-    fm.write_motifs()
-    check_cds(topdf2, annotations)
-    grph.fold_change_and_pvalue(shifts)
-    print("Writing the output...")
+    # for gene in fracs:
+    #     seq = gene.getSequence()
+    #     print(gene.getName())
+    #     sequences.write(">" + gene.getName() + "\n")
+    #     sequences.write(seq + "\n")
+    #     thread = threading.Thread(target=fm.hash_sequence, args=(seq,))
+    #     thread.start()
+    #     threads.append(thread)
+    #     # fm.hash_sequence(seq)
+    #     # if gene.getName() == 'Camk2a':
+    #     #     grph.show_change_in_box(gene, SAMPLES_PARTS)
+    # for thread in threads:
+    #     thread.join()
+    # sequences.close()
+    # fm.write_motifs()
+    # check_cds(topdf2, annotations)
+    # grph.fold_change_and_pvalue(shifts)
+    gui.write_to_output("Writing the output...\n")
+    gui.write_to_output("Done, press 'Exit' to close the window.\n")
     # grph.data_to_heat_map(topdf2, names)
     # writeShifted(shifts, path, output_filename)
     # data = topdf2[0].getSamples()
