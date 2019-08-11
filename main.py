@@ -7,6 +7,7 @@ It starts the GUI for choosing the option for the data file ("3end" extension).
 
 
 import numpy as np
+import tkinter as tk
 from PCAVisual import PCAVisual
 from Gene import Gene
 import sys
@@ -74,6 +75,7 @@ def readTheFile(path):
     line = file.readline()
     data = []
     while line != '':
+        print("here1")
         columns = line.split()
         reads = np.array([float(x) for x in columns[5:]])
         name = columns[0]
@@ -280,8 +282,7 @@ def check_cds(genes, annotations):
         cds_end = np.max(annotations[gene.getName()][:, 3])
         for coordinate in gene.getCoordinates():
             if coordinate[1] < cds_end:
-                continue
-                # print(gene.getName())
+                print(gene.getName())
 
 
 
@@ -356,6 +357,9 @@ def writeShifted(shifted, path, name):
 
 
 def routine(gui, DATA_FILE, ANNOT_FILE):
+    # gui_thread = threading.Thread(target=gui.write_to_output, args=(gui, "Reading the file...\n",))
+    # gui_thread.start()
+    # gui_thread.join()
     gui.write_to_output("Reading the file...\n")
     grph = Graphics()
     print("Reading the file...")
@@ -385,6 +389,7 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     fm = SimpleMotifsFinder.Family()
     sequences = open("utrs_all_alt.fa", 'w')
     threads = []
+    check_cds(topdf2, annotations)
     """
     The next lines can be executed using multiprocessing or multithreading.
     These are some times for each approach(run on set of 37 genes):
