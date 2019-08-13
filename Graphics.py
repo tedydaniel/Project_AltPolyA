@@ -53,8 +53,7 @@ class Graphics:
             plt.title(gene.getName() + "\n max_shift = " + str('{0:.3f}'.format(gene.getMaxShift())) + " , max_read = "
                       + str(gene.getMaxRead()) + " , mean_read = " + str('{0:.3f}'.format(gene.getMeanRead()))
                       + "\n transcript = " + str(gene.getNumTranscript()) + " , " + gene.getWhatDiffers()
-                      + " , p_value = " + str('{0:.5f}'.format(gene.getPValue())) + "\ncds = " +
-                      str(gene.relative_cds_length) )
+                      + " , p_value = " + str('{0:.5f}'.format(gene.getPValue())) )
             plt.yticks(rotation=0)
             plt.savefig("data\\heat_maps\\" + gene.getName() + ".png", dpi=65)
             pdf.image("data\\heat_maps\\" + gene.getName() + ".png")

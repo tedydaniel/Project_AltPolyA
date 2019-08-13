@@ -294,6 +294,7 @@ def findAnnotatedShifts(shifted, annotation, gui):
                 NOT_ANNOTATED.append(shifted_gene.getName())
                 shifted_gene.addNonAnnotated(counter)
             counter += 1
+    gui.write_to_output("Shifted: " + str(len(shifted)) + " | Not annotated: " + str(len(NOT_ANNOTATED)) + "\n")
 
 def check_cds(genes, annotations, gui):
     gui.write_to_output("Checking CDS...\n")
@@ -403,6 +404,11 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     findAnnotatedShifts(fracs, annotations, gui)
     shifts = findShifts(fracs)
     shifts = correct_fdr(shifts)
+    temp = []
+    for gene in shifts:
+        if gene.getMaxShift() > 1.5:
+            temp.append(gene)
+    grph.data_to_heat_map(temp, names, filename="str_above1d5.pdf")
     topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5, gui=gui)
     sorted(topdf2, key=lambda x: x.getName())
     fm = SimpleMotifsFinder.Family()

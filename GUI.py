@@ -23,6 +23,7 @@ class GUI:
         self.output.insert(tk.INSERT, "Choose the files and press 'Start'\n")
         self.start_routine = start_routine
         self.output.pack()
+        self.top.title("APA finder 1.0")
 
 
     def start(self):

@@ -42,10 +42,10 @@ class Gene:
         for i in range(self.m_coordinates.shape[0]):
             if self.strand == '+':
                 self.relative_length.append(self.m_coordinates[i][0] - self.m_coordinates[related][0])
-                self.relative_cds_length.append(self.m_cds[related][1] - self.m_coordinates[i][1])
+                # self.relative_cds_length.append(self.m_cds[related][1] - self.m_coordinates[i][1])
             else:
                 self.relative_length.append(self.m_coordinates[related][1] - self.m_coordinates[i][1])
-                self.relative_cds_length.append(self.m_coordinates[i][1] - self.m_cds[related][1])
+                # self.relative_cds_length.append(self.m_coordinates[i][1] - self.m_cds[related][1])
 
 
     def getSequence(self):
