@@ -28,6 +28,7 @@ class Gene:
         self.percent_of_expression = -1
         self.relative_cds_length = []
         self.sequence = ""
+        self.abundant = 0
 
 
     def calculate_lengths(self):
@@ -39,6 +40,7 @@ class Gene:
         for transcript in range(self.m_samples.shape[0]):
             if np.mean(self.m_samples[transcript]) > np.mean(self.m_samples[related]):
                 related = transcript
+        self.abundant = related
         for i in range(self.m_coordinates.shape[0]):
             if self.strand == '+':
                 self.relative_length.append(self.m_coordinates[i][0] - self.m_coordinates[related][0])
@@ -46,6 +48,7 @@ class Gene:
             else:
                 self.relative_length.append(self.m_coordinates[related][1] - self.m_coordinates[i][1])
                 # self.relative_cds_length.append(self.m_coordinates[i][1] - self.m_cds[related][1])
+
 
 
     def getSequence(self):
@@ -84,6 +87,8 @@ class Gene:
     def setCDS(self, cds):
         self.m_cds = cds
 
+    def getAbundant(self):
+        return self.abundant
 
     def getPercentOfExpression(self):
         return self.percent_of_expression

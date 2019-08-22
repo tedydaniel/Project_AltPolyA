@@ -34,11 +34,11 @@ NOT_ANNOTATED = []
 SAMPLES_PARTS = [8, 16]
 PEAK_WINDOW = 1000
 DATA_FILE = ""
-ANNOT_FILE=""
+ANNOT_FILE = ""
 
-SMALL_SIZE = 16
-MEDIUM_SIZE = 16
-BIGGER_SIZE = 16
+SMALL_SIZE = 20
+MEDIUM_SIZE = 20
+BIGGER_SIZE = 20
 gui = 0
 
 plt.rc('font', size=SMALL_SIZE, weight='bold')  # controls default text sizes
@@ -48,7 +48,6 @@ plt.rc('xtick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)  # fontsize of the tick labels
 plt.rc('legend', fontsize=14)  # legend fontsize
 plt.rc('figure', titlesize=BIGGER_SIZE)
-
 
 names = []
 
@@ -115,6 +114,7 @@ def findAlternatives(sortedList):
     # if THRESHOLD == 0:
     TRESHOLD = readsHistogram(sortedList)
     afterTresholdData = []
+    print(len(sortedList))
     for i in range(len(sortedList)):
         if np.mean(sortedList[i].getSamples()) >= TRESHOLD:
             afterTresholdData.append(sortedList[i])   #leaves only the reads only if the mean of the reads above TRESHOLD
@@ -130,6 +130,7 @@ def findAlternatives(sortedList):
     for item in afterTresholdData:
         if len(item.getSamples().shape) > 1:
             alternatives.append(item)
+    print(len(afterTresholdData), len(alternatives))
     return alternatives
 
 
@@ -148,6 +149,11 @@ def readsHistogram(sortedList):
     M = np.ndarray.flatten(M)
     # M = M[np.nonzero(M)]     #considering zeros or not?
     hist = np.histogram(M, bins= m)
+    # plt.xlabel("peak size(reads)")
+    # plt.ylabel("number of peaks")
+    # plt.title("Histogram of peaks sizes")
+    # plt.bar(np.arange(50), hist[0][:50])
+    # plt.show()
     cumulative = np.cumsum(hist[0])
     mc = np.max(cumulative)
     treshold = 0
@@ -207,7 +213,7 @@ def findShifts(alternatives):
             meanChronic = np.mean(m_samples[row][SAMPLES_PARTS[1]:])
             p = stats.kruskal(m_samples[row][:SAMPLES_PARTS[0]], m_samples[row][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]],
                               m_samples[row][SAMPLES_PARTS[1]:])[1]
-            means = [meanAcute, meanChallenge, meanChronic]
+            means = [meanAcute, meanChronic, meanChallenge]
             for i in range(len(means)):
                 mean1 = means[i]
                 for j in range(len(means)):
@@ -221,7 +227,7 @@ def findShifts(alternatives):
                             maxShift = (mean1 / mean2)
                             transcript = row
                             p_value = p
-                            what = samples[i] + "-" + samples[j]
+                            what = (i, j)
                         isShifted = True
             # counter += 1
         if isShifted:
@@ -297,13 +303,16 @@ def findAnnotatedShifts(shifted, annotation, gui):
     gui.write_to_output("Shifted: " + str(len(shifted)) + " | Not annotated: " + str(len(NOT_ANNOTATED)) + "\n")
 
 def check_cds(genes, annotations, gui):
+    changed = []
     gui.write_to_output("Checking CDS...\n")
     for gene in genes:
         cds_end = np.max(annotations[gene.getName()][:, 3])
         coordinate = gene.getCoordinates()[gene.getNumTranscript() - 1]
         if (gene.getStrand() == "+" and coordinate[0] < cds_end) or \
                 (gene.getStrand() == "-" and coordinate[1] > cds_end):
+            changed.append(gene)
             gui.write_to_output(gene.getName() + "\n")
+    return changed
 
 
 
@@ -385,6 +394,7 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     grph = Graphics()
     fromFile = readTheFile(DATA_FILE, gui)
     alternatives = findAlternatives(fromFile)
+    gui.write_to_output("Total transcripts: " + str(len(fromFile)) + " | APA: " + str(len(alternatives)) + "\n")
     if len(alternatives) > 0:
         gui.write_to_output("Found alternatives...\n")
     else:
@@ -408,13 +418,16 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     for gene in shifts:
         if gene.getMaxShift() > 1.5:
             temp.append(gene)
-    grph.data_to_heat_map(temp, names, filename="str_above1d5.pdf")
+    # grph.data_to_heat_map(temp, names, filename="str_above1d5.pdf")
     topdf2 = grph.scatter_pval_to_fold(shifts, shift=1.5, gui=gui)
     sorted(topdf2, key=lambda x: x.getName())
     fm = SimpleMotifsFinder.Family()
     sequences = open("utrs_all_alt.fa", 'w')
     threads = []
-    check_cds(topdf2, annotations, gui)
+    alt_exon = check_cds(topdf2, annotations, gui)
+    long_up, long_down = grph.length_by_regulation([gene for gene in topdf2 if gene not in alt_exon], SAMPLES_PARTS)
+    # print([gene.getName() for gene in long_up])
+    # print([gene.getName() for gene in long_down])
     """
     The next lines can be executed using multiprocessing or multithreading.
     These are some times for each approach(run on set of 37 genes):
@@ -438,7 +451,7 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
     # sequences.close()
     # fm.write_motifs()
     # check_cds(topdf2, annotations)
-    # grph.fold_change_and_pvalue(shifts)
+    grph.fold_change_and_pvalue(shifts)
     gui.write_to_output("Writing the output...\n")
     gui.write_to_output("Done, press 'Exit' to close the window.\n")
     # grph.data_to_heat_map(topdf2, names)
@@ -455,7 +468,10 @@ def routine(gui, DATA_FILE, ANNOT_FILE):
 
 def main():
     gui = GUI(routine)
-    gui.start()
+    try:
+        gui.start()
+    except:
+        gui.write_to_output("Error")
 
 
 if __name__ == "__main__":

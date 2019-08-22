@@ -91,18 +91,60 @@ class Graphics:
         plt.show()
 
 
-    def length_by_regulation(self, genes):
+    def length_by_regulation(self, genes, SAMPLES_PARTS):
         upreg = []
         downreg = []
         updown = []
         downup = []
+        fc_change = []
+        length_change = []
+        ac = []
+        chr = []
+        chl = []
         for gene in genes:
             gene.calculate_lengths()
             if abs(gene.getLengths()[gene.getNumTranscript() - 1]) > 10000:
                 continue
+            more, less = gene.getWhatDiffers()
             acute = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][:SAMPLES_PARTS[0]])
             challenge = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
             chronic = np.mean(gene.getSamples()[gene.getNumTranscript() - 1][SAMPLES_PARTS[1]:])
+            abundant = gene.getAbundant()
+            acute_a = np.mean(gene.getSamples()[abundant][:SAMPLES_PARTS[0]])
+            challenge_a = np.mean(gene.getSamples()[abundant][SAMPLES_PARTS[0]:SAMPLES_PARTS[1]])
+            chronic_a = np.mean(gene.getSamples()[abundant][SAMPLES_PARTS[1]:])
+            means = [acute, chronic, challenge]
+            means_a = [acute_a, chronic_a, challenge_a]
+            dict = {0:"Ac", 1:"Chr", 2:"Cha"}
+            print(gene.getChromosome())
+            print(gene.getCoordinates()[gene.getNumTranscript() - 1])
+            print(gene.getCoordinates()[abundant])
+            if gene.getLengths()[gene.getNumTranscript() - 1] > 0 and more > less:   #longer expresed more
+                ac.append(means[0])
+                chr.append(means[1])
+                chl.append(means[2])
+                length_change.append((gene.getName() + "\n(" + dict[more] + ", " + dict[less] + ")", gene.getLengths()[gene.getNumTranscript() - 1], gene))
+                fc_change.append((gene.getName() + "\n(" + dict[more] + ", " + dict[less] + ")", means[more] - means[less], gene))
+            elif gene.getLengths()[gene.getNumTranscript() - 1] > 0 and less > more:   #longer expressed less
+                ac.append(means[0])
+                chr.append(means[1])
+                chl.append(means[2])
+                length_change.append((gene.getName() + "\n(" + dict[more] + ", " + dict[less] + ")", -1 * gene.getLengths()[gene.getNumTranscript() - 1], gene))
+                fc_change.append((gene.getName() + "\n(" + dict[more] + ", " + dict[less] + ")", means[less] - means[more], gene))
+            elif gene.getLengths()[gene.getNumTranscript() - 1] < 0 and more > less:   #shorter expressed more
+                ac.append(means_a[0])
+                chr.append(means_a[1])
+                chl.append(means_a[2])
+                length_change.append((gene.getName() + "\n(" + dict[more] + ", " + dict[less] + ")", gene.getLengths()[gene.getNumTranscript() - 1], gene))
+                fc_change.append((gene.getName() + "\n(" + dict[more] + ", " + dict[less] + ")", means_a[more] - means_a[less], gene))
+            elif gene.getLengths()[gene.getNumTranscript() - 1] < 0 and less > more:   #shorter expressed less
+                ac.append(means_a[0])
+                chr.append(means_a[1])
+                chl.append(means_a[2])
+                length_change.append((gene.getName() + "\n(" + dict[more] + ", " + dict[less] + ")", -1 * gene.getLengths()[gene.getNumTranscript() - 1], gene))
+                fc_change.append((gene.getName() + "\n(" + dict[more] + ", " + dict[less] + ")", means_a[less] - means_a[more], gene))
+
+
             if acute <= chronic <= challenge:
                 upreg.append(gene.getLengths()[gene.getNumTranscript() - 1])
             elif acute >= chronic >= challenge:
@@ -112,24 +154,69 @@ class Graphics:
             else:
                 updown.append(gene.getLengths()[gene.getNumTranscript() - 1])
 
-        x_pos = np.arange(4)
+        long_up = []
+        long_down = []
+
+        for value in fc_change:
+            if value[1] > 0:
+                long_up.append(value[2])
+            else:
+                long_down.append(value[2])
+
         ctes = [np.mean(upreg), np.mean(downreg), np.mean(updown), np.mean(downup)]
         std_downreg = 0
         if downreg:
             std_downreg = np.std(downreg)
-        fig, ax = plt.subplots()
-        ax.bar(x_pos, ctes, align='center', alpha=0.5, ecolor='black', capsize=10)
-        ax.set_xticks(x_pos)
-        ax.set_xticklabels(['Upreg', 'Downreg', 'Updown', 'Downup'])
-        ax.set_ylabel("Tail relative length")
-        plt.title("Variance of the tail lengths\ns.d. " + str(int(np.std(upreg))) +
-                  " , " + str(int(std_downreg)) + " , " + str(int(np.std(updown))) +
-                  " , " + str(int(np.std(downup))))
-        plt.plot([0] * len(upreg), upreg, 'ko')
-        plt.plot([1] * len(downreg), downreg, 'ko')
-        plt.plot([2] * len(updown), updown, 'ko')
-        plt.plot([3] * len(downup), downup, 'ko')
+        # x_pos = [0, 1, 2]
+        # ac = ac * 100
+        # chr = chr * 100
+        # chl = chl * 100
+        # ctes = [np.average(ac), np.average(chr), np.average(chl)]
+        # fig, ax = plt.subplots()
+        # ax.bar(x_pos, ctes, align='center', alpha=0.5, ecolor='black', capsize=10)
+        # ax.set_xticks(x_pos)
+        # ax.set_xticklabels(['Acute', 'Chronic', 'Challenge'])
+        # ax.set_ylabel("Percent of expression")
+        # plt.title("Changes in expression of the long isoform")
+        # plt.plot([0] * len(ac), ac, 'ko')
+        # plt.plot([1] * len(chr), chr, 'ko')
+        # plt.plot([2] * len(chl), chl, 'ko')
+        # plt.show()
+
+        # x_pos = [0, 1, 2, 3]
+        # ctes = [np.mean(upreg), np.mean(downreg), np.mean(updown), np.mean(downup)]
+        # fig, ax = plt.subplots()
+        # ax.bar(x_pos, ctes, align='center', alpha=0.5, ecolor='black', capsize=10)
+        # ax.set_xticks(x_pos)
+        # ax.set_xticklabels(['Upreg', 'Downreg', 'Updown', 'Downup'])
+        # ax.set_ylabel("Tail relative length")
+        # # plt.title("Variance of the tail lengths\ns.d. " + str(int(np.std(upreg))) +
+        # #           " , " + str(int(std_downreg)) + " , " + str(int(np.std(updown))) +
+        # #           " , " + str(int(np.std(downup))))
+        # plt.plot([0] * len(upreg), upreg, 'ko')
+        # plt.plot([1] * len(downreg), downreg, 'ko')
+        # plt.plot([2] * len(updown), updown, 'ko')
+        # plt.plot([3] * len(downup), downup, 'ko')
+        # plt.show()
+
+        plt.title("The percent of expression change of the long isoform", fontsize=18)
+        plt.ylabel("percent of change (% after - % before)")
+        plt.xlabel("genes")
+        fc_change.sort(key=lambda x: x[1], reverse=True)
+        length_change.sort(key=lambda x: x[1], reverse=True)
+        x_pos = np.arange(len(fc_change))
+        plt.bar(x_pos, [x[1] * 100 for x in fc_change])
+        plt.xticks(x_pos + 0.5, [x[2].getName() for x in fc_change], rotation='vertical')
         plt.show()
+
+        # plt.title("The distance in bases between the upregulated and downregulated isoforms", fontsize=18)
+        # plt.ylabel("bases")
+        # plt.xlabel("genes")
+        # x_pos = np.arange(len(length_change))
+        # plt.bar(x_pos, [x[1] for x in length_change])
+        # plt.xticks(x_pos + 0.5, [x[2].getName() for x in length_change], rotation='vertical')
+        # plt.show()
+        return (long_up, long_down)
 
 
     def show_change_in_box(self, gene, segments):
@@ -194,8 +281,8 @@ class Graphics:
             file1 = open(name1, 'w')
             file2 = open(name2, 'w')
         for i in range(len(forhist)):
-            # if maxshift[i] > 2 and forhist[i] > 1:
-            #     print(togoterm[i])
+            if maxshift[i] > 1.9 and forhist[i] < 1:
+                print(togoterm[i])
             if out:
                 file2.write(togoterm[i] + "\n")
             if maxshift[i] < shift or forhist[i] < logpval:

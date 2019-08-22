@@ -4,9 +4,11 @@ from os import listdir
 from os.path import isfile, join
 import threading
 import time
+import threading
 
 
 class GUI:
+
 
     def __init__(self, start_routine):
         self.top = tk.Tk()
@@ -23,7 +25,25 @@ class GUI:
         self.output.insert(tk.INSERT, "Choose the files and press 'Start'\n")
         self.start_routine = start_routine
         self.output.pack()
-        self.top.title("APA finder 1.0")
+        self.top.title("APA finder 2000 1.1 beta")
+        self.timer = tk.Text(self.rightframe, width=5, height=1)
+        self.timer.insert(tk.INSERT, "00:00")
+        self.timer.pack()
+        def show_time():
+            start = time.time()
+            seconds = 0
+            while True:
+                if time.time() - start > 1:
+                    seconds += int(time.time() - start)
+                    start = time.time()
+                    cur_index = self.timer.index(tk.INSERT)
+                    cur_index = str(int(cur_index[0]) - 1) + cur_index[1:]
+                    self.timer.delete(cur_index, tk.INSERT)
+                    self.timer.insert(tk.INSERT, str(int(seconds / 60)) + ":" + str(seconds % 60))
+                    self.top.update()
+        thread = threading.Thread(target=show_time)
+        thread.start()
+        self.thread = thread
 
 
     def start(self):
@@ -51,6 +71,7 @@ class GUI:
             # thread = threading.Thread(target=self.start_routine, args=(self, DATA_FILE, ANNOT_FILE))
             # thread.start()
             # thread.join()
+            self.thread.start()
             self.start_routine(self, DATA_FILE, ANNOT_FILE)
             self.top.mainloop()
             # self.top.destroy()
