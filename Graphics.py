@@ -116,6 +116,7 @@ class Graphics:
             means = [acute, chronic, challenge]
             means_a = [acute_a, chronic_a, challenge_a]
             dict = {0:"Ac", 1:"Chr", 2:"Cha"}
+            print(gene.getName())
             print(gene.getChromosome())
             print(gene.getCoordinates()[gene.getNumTranscript() - 1])
             print(gene.getCoordinates()[abundant])

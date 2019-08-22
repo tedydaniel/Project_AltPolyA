@@ -42,7 +42,6 @@ class GUI:
                     self.timer.insert(tk.INSERT, str(int(seconds / 60)) + ":" + str(seconds % 60))
                     self.top.update()
         thread = threading.Thread(target=show_time)
-        thread.start()
         self.thread = thread
 
 
